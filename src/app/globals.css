@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
+/* Vessel brand: white instrument page, one refracted spectrum as the only colour. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
+  --paper: #ffffff;
+  --ink: #0a0a0b;
+  --ink-2: #44444b;
+  --mute: #8e8e96;
+  --hair: #e7e7eb;
+  --wash: #f7f7f9;
+  --s1: #ff3d6e;
+  --s2: #ff8a1f;
+  --s3: #f2b705;
+  --s4: #10b981;
+  --s5: #0ea5e9;
+  --s6: #6d4aff;
+  --spectrum: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display), "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--s5);
+  outline-offset: 3px;
 }
