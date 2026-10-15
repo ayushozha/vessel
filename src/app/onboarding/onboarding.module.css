@@ -117,7 +117,8 @@
 .ok { margin: 0; font: 13px var(--font-mono), monospace; color: var(--s4); }
 .err { margin: 0; font: 13px var(--font-mono), monospace; color: var(--s1); }
 
-.footer { border-top: 1px solid var(--hair); padding-top: 18px; font: 500 11px var(--font-mono), monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--hair); padding-top: 18px; font: 500 11px var(--font-mono), monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.continue { font: 500 14px/1 var(--font-display), sans-serif; letter-spacing: -0.005em; text-transform: none; border-radius: 999px; padding: 13px 22px; background: var(--ink); color: var(--paper); text-decoration: none; }
 .footer b { color: var(--ink); font-weight: 500; text-transform: none; letter-spacing: 0; }
 
 @media (max-width: 860px) {

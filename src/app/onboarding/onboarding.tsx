@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import styles from "./onboarding.module.css";
@@ -119,9 +120,14 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
 
       <footer className={styles.footer}>
         {status?.active && activeModel ? (
-          <span>
-            Ready · {OPTIONS.find((o) => o.id === status.active)?.name} · <b>{activeModel}</b>
-          </span>
+          <>
+            <span>
+              Ready · {OPTIONS.find((o) => o.id === status.active)?.name} · <b>{activeModel}</b>
+            </span>
+            <Link href="/new" className={styles.continue}>
+              Continue →
+            </Link>
+          </>
         ) : (
           <span>Connect a provider and choose a model to continue.</span>
         )}
