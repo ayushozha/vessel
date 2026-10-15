@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { getChatgptAccessToken } from "@/lib/chatgpt";
+import { getChatgptAccessToken, isSessionExpired } from "@/lib/chatgpt";
 import { readStore } from "@/lib/credentials";
 import { guardLocal } from "@/lib/guard";
 import { listModels } from "@/lib/providers";
@@ -23,8 +23,10 @@ export async function GET(request: Request) {
       secret = cred?.apiKey ?? null;
       region = cred?.region;
     }
-  } catch {
-    return Response.json({ error: "Your ChatGPT session expired. Connect again." }, { status: 401 });
+  } catch (e) {
+    return isSessionExpired(e)
+      ? Response.json({ error: "Your ChatGPT session expired. Connect again." }, { status: 401 })
+      : Response.json({ error: "Could not refresh your ChatGPT session. Check your connection and try again." }, { status: 502 });
   }
   if (!secret) return Response.json({ error: "Connect this provider first." }, { status: 404 });
 

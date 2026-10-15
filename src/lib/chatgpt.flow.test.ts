@@ -149,6 +149,18 @@ describe("getChatgptAccessToken", () => {
     expect(await getChatgptAccessToken()).toBeNull();
   });
 
+  it("shares one refresh between concurrent callers so a rotated token is never reused", async () => {
+    await saveChatgpt({ expiresAt: Date.now() + 30_000 });
+    vi.mocked(oauth.processRefreshTokenResponse).mockResolvedValue({
+      access_token: "new-access",
+      refresh_token: "new-refresh",
+      expires_in: 3600,
+      token_type: "bearer",
+    } as oauth.TokenEndpointResponse);
+    expect(await Promise.all([getChatgptAccessToken(), getChatgptAccessToken(), getChatgptAccessToken()])).toEqual(["new-access", "new-access", "new-access"]);
+    expect(oauth.refreshTokenGrantRequest).toHaveBeenCalledTimes(1);
+  });
+
   it("propagates refresh failures so callers can ask the user to reconnect", async () => {
     await saveChatgpt({ expiresAt: Date.now() - 1 });
     vi.mocked(oauth.processRefreshTokenResponse).mockRejectedValue(new Error("invalid_grant"));

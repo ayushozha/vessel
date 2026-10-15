@@ -2,6 +2,9 @@ import { checkCallback, completeAuthorization, localModeError } from "@/lib/chat
 import { consumePendingChatgpt } from "@/lib/credentials";
 import { effectiveUrl, guardLocal } from "@/lib/guard";
 
+// Only these codes may appear in the redirect URL; anything else becomes "exchange_failed".
+const KNOWN_FAILURES = new Set(["plan_usage_not_granted", "account_mismatch", "nonce_mismatch", "missing_sub"]);
+
 export async function GET(request: Request) {
   const blocked = guardLocal(request);
   if (blocked) return blocked;
@@ -18,7 +21,7 @@ export async function GET(request: Request) {
     await completeAuthorization(url, pending!, check.clientId);
     return done("connected");
   } catch (e) {
-    const reason = e instanceof Error && /^[a-z_]+$/.test(e.message) ? e.message : "exchange_failed";
+    const reason = e instanceof Error && KNOWN_FAILURES.has(e.message) ? e.message : "exchange_failed";
     return done(reason);
   }
 }

@@ -88,13 +88,18 @@ describe("/api/chatgpt/callback", () => {
     expect((await readStore()).pendingChatgpt).toBeUndefined();
   });
 
-  it("passes known failure codes through and hides other error text", async () => {
+  it("passes known failure codes through and hides everything else", async () => {
     await savePending();
     vi.mocked(completeAuthorization).mockRejectedValueOnce(new Error("account_mismatch"));
     expect(location(await callback(get(url)))).toBe("http://127.0.0.1:3000/onboarding?chatgpt=account_mismatch");
 
     await savePending();
     vi.mocked(completeAuthorization).mockRejectedValueOnce(new Error("token endpoint said: secret detail"));
+    expect(location(await callback(get(url)))).toBe("http://127.0.0.1:3000/onboarding?chatgpt=exchange_failed");
+
+    // A snake_case message that is not on the allowlist is still hidden.
+    await savePending();
+    vi.mocked(completeAuthorization).mockRejectedValueOnce(new Error("internal_store_path_leak"));
     expect(location(await callback(get(url)))).toBe("http://127.0.0.1:3000/onboarding?chatgpt=exchange_failed");
   });
 });

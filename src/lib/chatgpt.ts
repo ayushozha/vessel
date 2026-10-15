@@ -145,15 +145,31 @@ export async function completeAuthorization(callbackUrl: URL, pending: PendingCh
   });
 }
 
+/** True when the stored ChatGPT session can no longer be refreshed and the user must connect again. */
+export function isSessionExpired(e: unknown): boolean {
+  const code = (e as { error?: unknown } | null)?.error ?? (e instanceof Error ? e.message : undefined);
+  return code === "invalid_grant" || code === "account_changed_during_refresh";
+}
+
 /** Returns a usable access token, refreshing (and rotating the refresh token) when it is about to expire. */
 export async function getChatgptAccessToken(): Promise<string | null> {
   const cred = (await readStore()).chatgpt;
   if (!cred) return null;
   if (cred.expiresAt - 60_000 > Date.now()) return cred.accessToken;
   if (!cred.refreshToken) return null;
+  // Refresh tokens rotate, so concurrent callers must share one refresh instead of racing with a spent token.
+  inflightRefresh ??= refresh(cred, cred.refreshToken).finally(() => {
+    inflightRefresh = undefined;
+  });
+  return inflightRefresh;
+}
+
+let inflightRefresh: Promise<string> | undefined;
+
+async function refresh(cred: ChatgptCredential, refreshToken: string): Promise<string> {
   const as = await getAuthServer();
   const client: oauth.Client = { client_id: cred.clientId };
-  const res = await oauth.refreshTokenGrantRequest(as, client, oauth.None(), cred.refreshToken, {
+  const res = await oauth.refreshTokenGrantRequest(as, client, oauth.None(), refreshToken, {
     additionalParameters: { resource: RESOURCE },
   });
   const tokens = await oauth.processRefreshTokenResponse(as, client, res);

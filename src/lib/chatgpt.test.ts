@@ -96,3 +96,13 @@ describe("localModeError", () => {
     expect(localModeError("http://127.0.0.1:3000/x")).toBeNull();
   });
 });
+
+describe("isSessionExpired", () => {
+  it("only treats revoked or replaced sessions as expired", async () => {
+    const { isSessionExpired } = await import("./chatgpt");
+    expect(isSessionExpired({ error: "invalid_grant" })).toBe(true);
+    expect(isSessionExpired(new Error("account_changed_during_refresh"))).toBe(true);
+    expect(isSessionExpired(new TypeError("fetch failed"))).toBe(false);
+    expect(isSessionExpired(null)).toBe(false);
+  });
+});

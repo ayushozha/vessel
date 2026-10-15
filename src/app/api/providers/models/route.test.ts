@@ -71,3 +71,10 @@ describe("/api/providers/models", () => {
     expect((await GET(get("openai"))).status).toBe(401);
   });
 });
+
+it("treats a failed refresh that is not an expiry as temporary", async () => {
+  vi.mocked(getChatgptAccessToken).mockRejectedValue(new TypeError("fetch failed"));
+  const res = await GET(get("chatgpt"));
+  expect(res.status).toBe(502);
+  expect((await res.json()).error).toMatch(/try again/);
+});

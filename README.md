@@ -56,6 +56,7 @@ No model IDs are configured or hardcoded. Each provider's model list is fetched 
 ## How credentials are handled
 
 - Keys and tokens are stored only in the local credentials file (owner-only permissions, atomic writes). They are never sent to the browser; the UI only sees the last four characters.
+- On Windows, owner-only file modes are not enforced; the file inherits your user profile's permissions. On a shared Windows machine, point `VESSEL_CREDENTIALS_PATH` at a folder only you can read.
 - A key is saved only after the provider accepts it (its model-list endpoint returns success).
 - API routes answer only local, same-origin requests, which also blocks DNS-rebinding hosts.
 - ChatGPT uses OpenAI's documented flow for locally run apps: PKCE (S256), one-time state and nonce that expire after 10 minutes, ID-token signature verification against OpenAI's JWKS, and a required `chatgpt.tokens.use.direct` scope before the plan can be used. A hosted version of Vessel would need OpenAI's approval and a different client.
