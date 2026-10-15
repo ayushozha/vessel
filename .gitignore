@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
+
+# spike fixtures and starters install deps locally
+spikes/**/node_modules/
+spikes/**/package-lock.json
+starters/**/node_modules/

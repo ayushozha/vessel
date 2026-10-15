@@ -1,0 +1,19 @@
+--- a/bin/esbuild
++++ b/bin/esbuild
+@@ -10,7 +10,15 @@
+ const esbuild_wasm = path.join(__dirname, '..', 'esbuild.wasm');
+
+ const code = fs.readFileSync(wasm_exec_node, 'utf8');
+-const wrapper = new Function('require', 'WebAssembly', code);
++// Edge.js (wasmer/edgejs 0.2.5): code compiled by `new Function` sees a different global scope than
++// modules (stale process.argv, no globalThis.Go). Compile the Go loader as a real CommonJS module instead.
++const loader = new module_(wasm_exec_node, module);
++loader.filename = wasm_exec_node;
++loader.paths = module_._nodeModulePaths(path.dirname(wasm_exec_node));
++loader._compile(`module.exports = function (WebAssembly) {
++${code}
++};`, wasm_exec_node);
++const wrapper = (_require, WebAssembly) => loader.exports(WebAssembly);
+
+ function instantiate(bytes, importObject) {
+   // Using this API causes "./esbuild --version" to run around 1 second faster
