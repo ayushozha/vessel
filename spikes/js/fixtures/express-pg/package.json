@@ -1,0 +1,1 @@
+{ "name": "spike-express-pg", "private": true, "type": "module", "dependencies": { "express": "5.2.1", "pg": "8.23.0" } }

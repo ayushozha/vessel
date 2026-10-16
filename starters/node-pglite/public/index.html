@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Todos</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; padding: 0 1rem; }
+      form { display: flex; gap: 0.5rem; }
+      input[type="text"] { flex: 1; padding: 0.5rem; }
+      li { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+      li.done span { text-decoration: line-through; opacity: 0.6; }
+      li button { margin-left: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Todos</h1>
+    <form id="add"><input type="text" name="title" placeholder="What needs doing?" maxlength="200" required /><button>Add</button></form>
+    <ul id="list"></ul>
+    <script type="module">
+      const list = document.getElementById("list");
+      const api = (path, init) => fetch(path, { headers: { "content-type": "application/json" }, ...init });
+      async function render() {
+        const todos = await (await api("/api/todos")).json();
+        list.replaceChildren(...todos.map((todo) => {
+          const li = document.createElement("li");
+          li.className = todo.done ? "done" : "";
+          const box = Object.assign(document.createElement("input"), { type: "checkbox", checked: todo.done });
+          box.onchange = async () => { await api(`/api/todos/${todo.id}`, { method: "PATCH", body: JSON.stringify({ done: box.checked }) }); render(); };
+          const text = Object.assign(document.createElement("span"), { textContent: todo.title });
+          const del = Object.assign(document.createElement("button"), { textContent: "Delete" });
+          del.onclick = async () => { await api(`/api/todos/${todo.id}`, { method: "DELETE" }); render(); };
+          li.append(box, text, del);
+          return li;
+        }));
+      }
+      document.getElementById("add").onsubmit = async (event) => {
+        event.preventDefault();
+        const input = event.target.title;
+        await api("/api/todos", { method: "POST", body: JSON.stringify({ title: input.value }) });
+        input.value = "";
+        render();
+      };
+      render();
+    </script>
+  </body>
+</html>
