@@ -11,7 +11,7 @@ export const vesselHome = () => process.env.VESSEL_HOME || path.join(os.homedir(
 const projectsDir = () => path.join(vesselHome(), "projects");
 
 // Ids are UUIDs we generate; anything else is rejected before touching the filesystem.
-const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export const NewProject = z.object({
   kind: z.enum(["app", "agent", "mcp", "anything"] satisfies typeof KIND_IDS),
@@ -44,6 +44,8 @@ export async function createProject(input: z.input<typeof NewProject>): Promise<
   await fs.rename(/*turbopackIgnore: true*/ tmp, file);
   return project;
 }
+
+export const isProjectId = (id: string) => ID_PATTERN.test(id);
 
 export async function getProject(id: string): Promise<Project | null> {
   if (!ID_PATTERN.test(id)) return null;

@@ -1,25 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import type { ChatMessage } from "@/lib/generator/history";
 import { KINDS } from "@/lib/kinds";
 import type { Project } from "@/lib/projects";
 import type { ActiveModel } from "@/lib/readiness";
 
 import styles from "./builder.module.css";
+import { CodeView } from "./code-view";
 import { Preview } from "./preview/preview";
+import { useRun, type LiveRun } from "./use-run";
 
 const STAGES = ["Plan", "Generate", "Run", "Repair", "Verify", "Live"] as const;
 const TABS = ["Preview", "Code", "Logs", "Checks", "Resources"] as const;
 type Tab = (typeof TABS)[number];
 const PROVIDER_NAMES: Record<string, string> = { chatgpt: "ChatGPT", openai: "OpenAI", anthropic: "Anthropic", glm: "GLM" };
+const kb = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`);
+const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 export function Builder({ project, active }: { project: Project; active: ActiveModel }) {
   const [tab, setTab] = useState<Tab>("Preview");
   const [draft, setDraft] = useState("");
   const kind = KINDS[project.kind];
-  const created = new Date(project.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const run = useRun(project.id, project.brief);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  // Which stages are lit: live run state first, otherwise the last finished run.
+  const lastAssistant = [...(run.messages ?? [])].reverse().find((m) => m.role === "assistant");
+  const generated = lastAssistant?.status === "succeeded" && (lastAssistant.files?.length ?? 0) > 0;
+  const stageState = (s: (typeof STAGES)[number]): "done" | "on" | "idle" => {
+    if (run.live) {
+      if (s === "Plan") return run.live.stage === "plan" ? "on" : "done";
+      if (s === "Generate") return run.live.stage === "generate" ? "on" : "idle";
+      return "idle";
+    }
+    return generated && (s === "Plan" || s === "Generate") ? "done" : "idle";
+  };
+
+  const changed = useMemo(() => new Set((run.lastRun?.files ?? lastAssistant?.files ?? []).map((f) => f.path)), [run.lastRun, lastAssistant]);
+
+  useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
+  }, [run.messages, run.live]);
+
+  const submit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = draft.trim();
+    if (!text || run.running) return;
+    setDraft("");
+    void run.send(text);
+  };
 
   return (
     <div className={styles.app}>
@@ -46,7 +78,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
 
         <ol className={styles.stages} aria-label="Run stages">
           {STAGES.map((s) => (
-            <li key={s}>
+            <li key={s} data-state={stageState(s)} title={s === "Run" && generated ? "Runs in the Wasmer sandbox once the runtime is connected" : undefined}>
               <i />
               {s}
             </li>
@@ -58,7 +90,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             <i />
             {PROVIDER_NAMES[active.provider] ?? active.provider} · {active.model}
           </Link>
-          <button type="button" className={styles.publish} disabled title="Nothing to publish yet">
+          <button type="button" className={styles.publish} disabled title="Publishing to Wasmer Edge comes next">
             Publish
           </button>
         </div>
@@ -66,48 +98,39 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
 
       <div className={styles.body}>
         <aside className={styles.chat}>
-          <div className={styles.thread}>
-            <div className={styles.you}>
-              <p>{project.brief}</p>
-              <span>{created}</span>
-            </div>
-
-            <div className={styles.note}>
-              <i style={{ background: kind.color }} />
-              <div>
-                Brief saved as a new {kind.name === "Anything" ? "project" : kind.name.toLowerCase()}. The build engine is not
-                connected yet, so nothing has run. Runs will stream here.
-              </div>
-            </div>
-
-            <div className={styles.planCard}>
-              <span className={styles.cardLabel}>What this will produce</span>
-              <p className={styles.produces}>{kind.produces}</p>
-              <span className={styles.cardLabel}>Resources it will ask for</span>
-              <ul>
-                {kind.resources.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </div>
+          <div className={styles.thread} ref={threadRef} aria-live="polite">
+            {run.messages === null && <p className={styles.muted}>Loading conversation…</p>}
+            {run.messages?.map((m, i) => (m.role === "user" ? <UserBubble key={i} message={m} /> : <AssistantTurn key={i} message={m} />))}
+            {run.live && <LiveTurn live={run.live} />}
+            {run.error && <p className={styles.errorBox}>{run.error}</p>}
           </div>
 
-          <form className={styles.composer} onSubmit={(e) => e.preventDefault()}>
+          <form className={styles.composer} onSubmit={submit}>
             <label htmlFor="message" className="sr-only">
               Message
             </label>
             <textarea
               id="message"
               rows={2}
-              placeholder="Ask for a change…"
+              placeholder={run.running ? "Building…" : "Ask for a change…"}
               value={draft}
+              disabled={run.running}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) submit(e);
+              }}
             />
             <div className={styles.composerRow}>
-              <span>Engine not connected</span>
-              <button type="submit" disabled>
-                Send
-              </button>
+              <span>{run.running ? "Writing files…" : "Enter to send"}</span>
+              {run.running ? (
+                <button type="button" className={styles.stop} onClick={run.stop}>
+                  Stop
+                </button>
+              ) : (
+                <button type="submit" disabled={!draft.trim()}>
+                  Send
+                </button>
+              )}
             </div>
           </form>
         </aside>
@@ -117,23 +140,22 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             {TABS.map((t) => (
               <button key={t} type="button" role="tab" aria-selected={tab === t} data-on={tab === t} onClick={() => setTab(t)}>
                 {t}
+                {t === "Code" && changed.size > 0 && <span className={styles.badge}>{changed.size}</span>}
               </button>
             ))}
           </div>
           <div className={styles.view} role="tabpanel" aria-label={tab}>
             {tab === "Preview" && <Preview appUrl={null} />}
-            {tab === "Code" && (
-              <div className={styles.code}>
-                <ul className={styles.tree}>
-                  <li className={styles.muted}>No files yet</li>
-                </ul>
-                <Empty title="No source yet." text="Generated files appear here, and you can open any of them." />
-              </div>
-            )}
+            {tab === "Code" && <CodeView projectId={project.id} version={run.fileVersion} changed={changed} />}
             {tab === "Logs" && (
               <pre className={styles.logs}>
-                <span className={styles.muted}>$ waiting for the first run</span>
-                <span className={styles.caret} />
+                {run.log.length === 0 && <span className={styles.logDim}>$ waiting for the next run</span>}
+                {run.log.map((l, i) => (
+                  <span key={i} className={l.tone === "ok" ? styles.logOk : l.tone === "err" ? styles.logErr : l.tone === "dim" ? styles.logDim : undefined}>
+                    {new Date(l.at).toLocaleTimeString([], { hour12: false })}  {l.text}
+                  </span>
+                ))}
+                {run.running && <span className={styles.caret} />}
               </pre>
             )}
             {tab === "Checks" && (
@@ -142,7 +164,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                   <li key={c}>
                     <i />
                     <span>{c}</span>
-                    <em>Pending</em>
+                    <em>Pending · needs the sandbox runtime</em>
                   </li>
                 ))}
               </ul>
@@ -165,21 +187,69 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
   );
 }
 
-function Empty({ title, text }: { title: string; text: string }) {
+function UserBubble({ message }: { message: ChatMessage }) {
   return (
-    <div className={styles.empty}>
-      <svg viewBox="0 0 120 80" aria-hidden="true">
-        <path d="M0 40 H44" stroke="#C9C9CF" strokeWidth="1" />
-        <polygon points="60,14 42,62 78,62" fill="#FFFFFF" stroke="#0A0A0B" strokeOpacity=".4" strokeWidth="1" />
-        <g strokeWidth="1" opacity=".55">
-          <path d="M69 42 L120 22" stroke="#FF3D6E" />
-          <path d="M69 42 L120 36" stroke="#F2B705" />
-          <path d="M69 42 L120 50" stroke="#10B981" />
-          <path d="M69 42 L120 64" stroke="#6D4AFF" />
-        </g>
-      </svg>
-      <strong>{title}</strong>
-      <p>{text}</p>
+    <div className={styles.you}>
+      <p>{message.text}</p>
+      <span>{time(message.at)}</span>
+    </div>
+  );
+}
+
+function AssistantTurn({ message }: { message: ChatMessage }) {
+  const m = message.metrics;
+  return (
+    <div className={styles.turn}>
+      {message.text && <p className={styles.narration}>{message.text.replace(/\n{3,}/g, "\n\n")}</p>}
+      {!!message.files?.length && (
+        <ul className={styles.ops}>
+          {message.files.map((f) => (
+            <li key={f.op + f.path} data-status={f.op === "delete" ? "deleted" : "written"}>
+              <i />
+              <span>{f.path}</span>
+              <em>{f.op === "delete" ? "deleted" : kb(f.bytes)}</em>
+            </li>
+          ))}
+        </ul>
+      )}
+      {message.status === "failed" && <p className={styles.errorBox}>{message.error ?? "The run failed."}</p>}
+      {message.status === "cancelled" && <p className={styles.muted}>Stopped. Files written before stopping were kept.</p>}
+      {m && (
+        <span className={styles.metrics}>
+          {(m.durationMs / 1000).toFixed(1)}s{m.firstTokenMs !== null ? ` · first token ${(m.firstTokenMs / 1000).toFixed(1)}s` : ""} ·{" "}
+          {message.files?.length ?? 0} files{m.outputTokens ? ` · ${m.outputTokens.toLocaleString()} tokens` : ""} · {m.model}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LiveTurn({ live }: { live: LiveRun }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className={styles.turn}>
+      <p className={styles.narration}>
+        {live.text.replace(/\n{3,}/g, "\n\n").trim() || (live.stage === "plan" ? "Planning…" : "")}
+        <span className={styles.cursor} />
+      </p>
+      {!!live.files.length && (
+        <ul className={styles.ops}>
+          {live.files.map((f) => (
+            <li key={f.path} data-status={f.status} title={f.reason}>
+              <i />
+              <span>{f.path}</span>
+              <em>{f.status === "rejected" ? "rejected" : f.status === "deleted" ? "deleted" : kb(f.bytes)}</em>
+            </li>
+          ))}
+        </ul>
+      )}
+      <span className={styles.metrics}>
+        {live.stage === "plan" ? "Planning" : "Writing files"} · {((now - live.startedAt) / 1000).toFixed(1)}s
+      </span>
     </div>
   );
 }
