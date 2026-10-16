@@ -33,16 +33,32 @@ export function nameFromBrief(brief: string): string {
   return (name[0].toUpperCase() + name.slice(1)).slice(0, 80);
 }
 
-export async function createProject(input: z.input<typeof NewProject>): Promise<Project> {
-  const data = NewProject.parse(input);
-  const project: Project = { ...data, id: randomUUID(), name: data.name ?? nameFromBrief(data.brief), createdAt: new Date().toISOString() };
+export const ProjectName = z.string().trim().min(1, "Give the project a name.").max(80, "Keep the name under 80 characters.");
+
+/** Atomic write: a reader never sees a half-written project file. */
+async function saveProject(project: Project): Promise<void> {
   const dir = projectsDir();
   await fs.mkdir(/*turbopackIgnore: true*/ dir, { recursive: true, mode: 0o700 });
   const file = path.join(dir, `${project.id}.json`);
   const tmp = `${file}.${randomUUID()}.tmp`;
   await fs.writeFile(/*turbopackIgnore: true*/ tmp, JSON.stringify(project, null, 2), { mode: 0o600 });
   await fs.rename(/*turbopackIgnore: true*/ tmp, file);
+}
+
+export async function createProject(input: z.input<typeof NewProject>): Promise<Project> {
+  const data = NewProject.parse(input);
+  const project: Project = { ...data, id: randomUUID(), name: data.name ?? nameFromBrief(data.brief), createdAt: new Date().toISOString() };
+  await saveProject(project);
   return project;
+}
+
+/** Rename a project; null when it does not exist. */
+export async function renameProject(id: string, name: string): Promise<Project | null> {
+  const project = await getProject(id);
+  if (!project) return null;
+  const renamed = { ...project, name: ProjectName.parse(name) };
+  await saveProject(renamed);
+  return renamed;
 }
 
 export const isProjectId = (id: string) => ID_PATTERN.test(id);

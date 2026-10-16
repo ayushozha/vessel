@@ -5,12 +5,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { updateStore } from "@/lib/credentials";
 
-import { GET as getOne } from "./[id]/route";
+import { GET as getOne, PATCH } from "./[id]/route";
 import { GET as list, POST } from "./route";
 
 const ORIGIN = "http://127.0.0.1:3000";
 const post = (body: unknown, origin = ORIGIN) =>
   new Request(`${ORIGIN}/api/projects`, { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const patch = (id: string, body: unknown, origin = ORIGIN) =>
+  PATCH(new Request(`${ORIGIN}/api/projects/${id}`, { method: "PATCH", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body) }), {
+    params: Promise.resolve({ id }),
+  });
 const one = (id: string) => getOne(new Request(`${ORIGIN}/api/projects/${id}`), { params: Promise.resolve({ id }) });
 
 let dir: string;
@@ -65,5 +69,27 @@ describe("/api/projects", () => {
     await connectModel();
     expect((await POST(post({ kind: "app", brief: "A support desk" }, "https://evil.example"))).status).toBe(403);
     expect((await (await list(new Request(`${ORIGIN}/api/projects`))).json()).projects).toHaveLength(0);
+  });
+
+  it("lists each project with its file count and runtime state for the projects home", async () => {
+    await connectModel();
+    await POST(post({ kind: "app", brief: "A support desk" }));
+    const [p] = (await (await list(new Request(`${ORIGIN}/api/projects`))).json()).projects;
+    expect(p).toMatchObject({ kind: "app", files: 0, runtime: { state: "idle", appUrl: null } });
+  });
+
+  it("renames a project, trimming and validating the name", async () => {
+    await connectModel();
+    const project = await (await POST(post({ kind: "app", brief: "A support desk" }))).json();
+    const res = await patch(project.id, { name: "  Helpdesk v2  " });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ id: project.id, name: "Helpdesk v2", brief: "A support desk" });
+    expect((await (await one(project.id)).json()).name).toBe("Helpdesk v2");
+
+    expect((await patch(project.id, { name: "   " })).status).toBe(400);
+    expect((await patch(project.id, { name: "x".repeat(81) })).status).toBe(400);
+    expect((await patch("3f2b8c1e-1d2a-4b3c-9d4e-5f6a7b8c9d0e", { name: "Nope" })).status).toBe(404);
+    expect((await patch(project.id, { name: "Hijack" }, "https://evil.example")).status).toBe(403);
+    expect((await (await one(project.id)).json()).name).toBe("Helpdesk v2");
   });
 });

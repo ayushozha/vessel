@@ -121,6 +121,7 @@ export function NewProject({ provider, model }: { provider: string; model: strin
 
       <footer className={styles.footer}>
         <Link href="/onboarding">← Step 1 · Model</Link>
+        <Link href="/projects">All projects</Link>
         <span>Nothing runs until the builder opens.</span>
       </footer>
     </main>
