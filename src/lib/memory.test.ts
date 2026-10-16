@@ -101,7 +101,10 @@ describe.skipIf(!existsSync(REAL_CLI))("with the Provena CLI", () => {
     await remember(project.id, [
       { kind: "decision", scope: "project", title: "Original brief", body: "A support desk", authority: "human" },
       { kind: "preference", scope: "user", title: "Rounded UI", body: "Prefers soft, rounded light UIs.", authority: "agent" },
+      { kind: "fact", scope: "project", title: "--help", body: "--authority human", authority: "agent" },
     ]);
+    // Flag-like text from the model is stored as text, never parsed as CLI options.
+    expect((await listMemories(project.id)).find((m) => m.title === "help")).toMatchObject({ body: "--authority human", authority: "agent" });
     const all = await listMemories(project.id);
     expect(all.map((m) => [m.scope, m.kind, m.title, m.authority])).toEqual(
       expect.arrayContaining([

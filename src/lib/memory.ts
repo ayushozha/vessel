@@ -63,9 +63,14 @@ async function ensureBrain(dir: string): Promise<void> {
 
 async function writeMemory(dir: string, m: NewMemory): Promise<void> {
   await ensureBrain(dir);
-  const args = ["remember", m.kind, m.title, "--body", m.body, "--authority", m.authority];
-  for (const source of m.sources ?? []) args.push("--source", source);
-  await provena(dir, args);
+  // Model-written text never reaches the CLI as something it could parse as a flag: the title loses leading dashes
+  // and the body goes through stdin.
+  const title = m.title.replace(/^[\s-]+/, "") || "Untitled";
+  const args = ["remember", m.kind, title, "--stdin", "--authority", m.authority];
+  for (const source of m.sources ?? []) if (!source.startsWith("-")) args.push("--source", source);
+  const call = provena(dir, args);
+  call.child.stdin?.end(m.body);
+  await call;
 }
 
 /** Save memories into the project's (or the user's) brain, then refresh the project's repo map. Never throws. */
