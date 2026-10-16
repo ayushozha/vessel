@@ -1,0 +1,15 @@
+{
+  "name": "vessel-compiled-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Isolated spikes: compiled backend languages running inside local Wasmer sandboxes",
+  "scripts": {
+    "c": "node c/spike.mjs",
+    "rust": "node rust/spike.mjs",
+    "go": "node go/spike.mjs",
+    "java": "node java/spike.mjs"
+  },
+  "dependencies": {
+    "@wasmer/sdk": "0.19.1"
+  }
+}
