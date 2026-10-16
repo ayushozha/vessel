@@ -5,6 +5,7 @@
 //   ...full file content...
 //   </file>
 //   <delete path="old.js" />
+//   <memory kind="decision" scope="project" title="Short title">Why it matters</memory>
 
 import { validatePath } from "../workspace";
 
@@ -14,7 +15,14 @@ export type ParseEvent =
   | { type: "file-delta"; path: string; bytes: number }
   | { type: "file-end"; path: string; content: string }
   | { type: "delete"; path: string }
+  | { type: "memory"; kind: MemoryKind; scope: "project" | "user"; title: string; body: string }
   | { type: "invalid"; path: string; reason: string };
+
+export const MEMORY_KINDS = ["fact", "decision", "workflow", "mistake", "preference", "invariant"] as const;
+export type MemoryKind = (typeof MEMORY_KINDS)[number];
+const MEMORY_OPEN = /<memory\s+([^>]*)>/;
+const MEMORY_CLOSE = "</memory>";
+const MAX_MEMORY = 2000;
 
 const OPEN = /<file\s+path="([^"]*)"\s*>/;
 const DELETE = /<delete\s+path="([^"]*)"\s*\/?>/;
@@ -30,11 +38,27 @@ export function stripFence(content: string): string {
 export class FileStreamParser {
   private buffer = "";
   private inFile: { path: string | null; content: string; skipNewline: boolean } | null = null;
+  private inMemory: { attrs: string; content: string } | null = null;
 
   feed(chunk: string): ParseEvent[] {
     this.buffer += chunk;
     const events: ParseEvent[] = [];
     for (;;) {
+      if (this.inMemory) {
+        const close = this.buffer.indexOf(MEMORY_CLOSE);
+        if (close === -1) {
+          const safe = Math.max(0, this.buffer.length - (MEMORY_CLOSE.length - 1));
+          this.inMemory.content += this.buffer.slice(0, safe);
+          this.buffer = this.buffer.slice(safe);
+          return events;
+        }
+        this.inMemory.content += this.buffer.slice(0, close);
+        this.buffer = this.buffer.slice(close + MEMORY_CLOSE.length);
+        const memory = parseMemory(this.inMemory.attrs, this.inMemory.content);
+        this.inMemory = null;
+        if (memory) events.push(memory);
+        continue;
+      }
       if (this.inFile) {
         if (this.inFile.skipNewline && this.buffer.length) {
           if (this.buffer.startsWith("\r\n")) this.buffer = this.buffer.slice(2);
@@ -65,6 +89,12 @@ export class FileStreamParser {
         this.emitText(this.buffer.slice(0, lt), events);
         this.buffer = this.buffer.slice(lt);
       }
+      const mem = this.buffer.match(MEMORY_OPEN);
+      if (mem && mem.index === 0) {
+        this.buffer = this.buffer.slice(mem[0].length);
+        this.inMemory = { attrs: mem[1], content: "" };
+        continue;
+      }
       const open = this.buffer.match(OPEN);
       const del = this.buffer.match(DELETE);
       const first = [open, del].filter((m): m is RegExpMatchArray => !!m && m.index === 0)[0];
@@ -81,8 +111,8 @@ export class FileStreamParser {
       }
       // A "<" that may still become a tag: wait for more input, unless it clearly cannot.
       const b = this.buffer;
-      const partialKeyword = "<file ".startsWith(b) || "<delete ".startsWith(b);
-      const unfinishedTag = /^<(file|delete)\s/.test(b) && !b.includes(">");
+      const partialKeyword = "<file ".startsWith(b) || "<delete ".startsWith(b) || "<memory ".startsWith(b);
+      const unfinishedTag = /^<(file|delete|memory)\s/.test(b) && !b.includes(">");
       if ((partialKeyword || unfinishedTag) && b.length < MAX_TAG) return events;
       this.emitText("<", events);
       this.buffer = this.buffer.slice(1);
@@ -92,6 +122,7 @@ export class FileStreamParser {
   /** Flush at the end of the stream. An unclosed file is reported, never written. */
   end(): ParseEvent[] {
     const events: ParseEvent[] = [];
+    this.inMemory = null; // a cut-off memory is dropped
     if (this.inFile) {
       if (this.inFile.path) events.push({ type: "invalid", path: this.inFile.path, reason: "file was cut off before </file>" });
       this.inFile = null;
@@ -134,4 +165,14 @@ export class FileStreamParser {
     if (last?.type === "text") last.text += text;
     else events.push({ type: "text", text });
   }
+}
+
+/** A memory block becomes an event only with a known kind, a title and a body; anything else is dropped. */
+function parseMemory(attrs: string, content: string): ParseEvent | null {
+  const a = Object.fromEntries([...attrs.matchAll(/(\w+)="([^"]*)"/g)].map((m) => [m[1], m[2].trim()]));
+  const kind = MEMORY_KINDS.find((k) => k === a.kind);
+  const title = (a.title ?? "").slice(0, 160);
+  const body = content.trim().slice(0, MAX_MEMORY);
+  if (!kind || !title || !body) return null;
+  return { type: "memory", kind, scope: a.scope === "user" ? "user" : "project", title, body };
 }

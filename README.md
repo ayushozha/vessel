@@ -18,6 +18,7 @@ Model-agnostic onboarding · ChatGPT plan usage (local mode) · OpenAI · Anthro
 - [API](#api)
 - [Repository map](#repository-map)
 - [Testing](#testing)
+- [Project memory](#project-memory)
 - [License](#license)
 
 ## Status
@@ -27,7 +28,10 @@ Model-agnostic onboarding · ChatGPT plan usage (local mode) · OpenAI · Anthro
 | Onboarding: connect OpenAI, Anthropic or GLM (Z.ai / BigModel) with an API key | Implemented, tested |
 | Onboarding: Continue with ChatGPT (local mode, plan usage) | Implemented, tested up to OpenAI consent; needs a real sign-in to confirm end to end |
 | Model selection from each provider's live model list | Implemented |
-| Build engine (generate → deploy on Wasmer → repair) | Roadmap, see the product spec |
+| Build engine: plan, then parallel per-file generation from the connected model | Implemented, tested |
+| Local run: each project in a Wasmer SDK sandbox (Edge.js) with persistent host-side PGlite Postgres | Implemented, tested |
+| Project memory with Provena: decisions and preferences recalled on every run | Implemented, tested (needs `pnpm setup:provena`) |
+| Publish to Wasmer Edge, checks and auto-repair | Roadmap, see the product spec |
 | Landing page | Design preview only |
 
 The product and engineering spec lives outside this repo in `specs/wasmer-build-with-ai/` (SPEC.md and FEATURES.md).
@@ -38,6 +42,7 @@ Requires Node 20+ and pnpm. PowerShell:
 
 ```powershell
 pnpm install
+pnpm setup:provena   # optional: enables project memory
 Copy-Item .env.example .env.local
 pnpm dev
 ```
@@ -50,6 +55,7 @@ Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?t
 |---|---|---|
 | `CHATGPT_LOCAL_MODE` | off | `true` enables Continue with ChatGPT. Only works when the app is opened at `127.0.0.1`, because OpenAI only redirects back to a `127.0.0.1` loopback address. |
 | `VESSEL_CREDENTIALS_PATH` | `~/.config/vessel/credentials.json` | Where API keys and ChatGPT tokens are stored. |
+| `VESSEL_PROVENA_CLI` | `~/.config/vessel/toolchains/provena/cli/dist/cli.js` | Provena CLI used for project memory. Memory is off when it is missing. |
 
 No model IDs are configured or hardcoded. Each provider's model list is fetched with the user's own credential, and the user picks one.
 
@@ -74,6 +80,7 @@ All routes are local-only.
 | `DELETE /api/providers?provider=` | Remove a provider |
 | `GET /api/providers/models?provider=` | Re-fetch models with the stored credential (refreshes ChatGPT tokens when needed) |
 | `GET /api/chatgpt/start` · `GET /api/chatgpt/callback` | ChatGPT sign-in and consent |
+| `GET /api/projects/:id/memory` · `POST` `{ kind, scope, title, body }` | List what the project remembers; add a rule by hand (human authority) |
 
 ## Repository map
 
@@ -85,6 +92,8 @@ All routes are local-only.
 | `src/lib/guard.ts` | Local-only and same-origin request guard |
 | `src/app/api/` | Route handlers |
 | `src/app/onboarding/` | Onboarding UI |
+| `src/lib/memory.ts` | Provena-backed project and user memory |
+| `scripts/setup-provena.mjs` | Installs a pinned Provena build into Vessel's toolchains |
 
 ## Testing
 
@@ -92,6 +101,16 @@ All routes are local-only.
 pnpm check   # lint, typecheck, unit + route tests
 pnpm build
 ```
+
+## Project memory
+
+Each project workspace is a [Provena](https://github.com/ayushozha/provena) brain (`.provena/`, an append-only memory ledger plus a repo map), so follow-up edits never start cold:
+
+- The first brief is stored as the project's founding decision.
+- The model records lasting decisions and preferences with `<memory>` blocks; Vessel writes them to the ledger after the run, in the background.
+- Every run recalls them (rules you added first, then newest) into the prompt.
+- Preferences marked *all my projects* go to a user-level brain at `~/.config/vessel/brain`.
+- The Memory tab lists everything remembered and lets you add rules. Provena gets a minimal environment (no provider keys), and the project's git repo runs no hooks.
 
 ## Contributing
 

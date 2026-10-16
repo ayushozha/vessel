@@ -26,7 +26,8 @@ export function isBinary(rel: string, data?: Uint8Array): boolean {
 }
 
 const SEGMENT = /^[A-Za-z0-9_@()+\-][A-Za-z0-9._@()+\- ]*$/;
-const BLOCKED_SEGMENTS = new Set(["node_modules", ".git", ".wasmer", ".next", "dist-ssr"]);
+// .provena holds the project's memory brain (src/lib/memory.ts); only Provena writes it.
+const BLOCKED_SEGMENTS = new Set(["node_modules", ".git", ".wasmer", ".next", "dist-ssr", ".provena"]);
 // Generated code must never carry real secrets; .env.example documents variables instead.
 const BLOCKED_FILES = /^\.env(\..*)?$/;
 

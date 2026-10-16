@@ -2,6 +2,14 @@
 // (Edge.js for Node, plus pglite for Postgres) and deploys unchanged to Wasmer Edge.
 import type { Kind } from "../kinds";
 
+const MEMORY_PROTOCOL = `
+- MEMORY: when the user states a lasting preference or rule, or you make a decision later edits must respect (a schema choice,
+  a naming or design convention, a constraint), record it after your summary sentence, at most 3 per reply:
+<memory kind="decision" scope="project" title="Short title">One or two sentences: what, and why.</memory>
+  kind is one of decision, preference, invariant, mistake, workflow, fact. Use scope="user" only for a preference that should
+  apply to all of the user's projects (for example "prefers dark UIs"). Do not record routine details or what the code already says.
+`.trim();
+
 const PROTOCOL = `
 OUTPUT FORMAT (strict):
 - Start with 1-3 short sentences saying what you will build or change. No headings, no lists.
@@ -14,6 +22,7 @@ OUTPUT FORMAT (strict):
 - Always write complete files, never diffs, ellipses or "rest unchanged" placeholders.
 - End with one short sentence summarizing the result.
 - On follow-up requests, emit ONLY files that change. Keep everything else working.
+${MEMORY_PROTOCOL}
 `.trim();
 
 const COMMON = `
@@ -73,11 +82,16 @@ export function systemPrompt(kind: Kind): string {
 }
 
 /** The user turn: the request, plus the current source on follow-ups so the model edits instead of rewriting. */
-export function userPrompt(message: string, snapshot: string): string {
+export function userPrompt(message: string, snapshot: string, memory = ""): string {
+  const recalled = memorySection(memory);
   return snapshot
-    ? `CURRENT PROJECT FILES:\n${snapshot}\n\nREQUEST:\n${message}\n\nEmit only the files that change.`
-    : `REQUEST:\n${message}`;
+    ? `${recalled}CURRENT PROJECT FILES:\n${snapshot}\n\nREQUEST:\n${message}\n\nEmit only the files that change.`
+    : `${recalled}REQUEST:\n${message}`;
 }
+
+/** Project memory recalled from Provena, placed before the request so it frames it. */
+const memorySection = (memory: string) =>
+  memory ? `PROJECT MEMORY (decisions and preferences from earlier work; follow them unless the request changes them):\n${memory}\n\n` : "";
 
 const PLAN_FORMAT = `
 OUTPUT FORMAT (strict): reply with ONE JSON object and nothing else (no prose, no markdown fences):
@@ -135,6 +149,6 @@ export function fileSystemPrompt(kind: Kind): string {
 }
 
 /** The per-file user turn: request and plan first (shared prefix), the assigned file last. */
-export function fileUserPrompt(message: string, planJson: string, file: { path: string; purpose: string }): string {
-  return `REQUEST:\n${message}\n\nPLAN:\n${planJson}\n\nWRITE THIS FILE: ${file.path}\nPurpose: ${file.purpose}`;
+export function fileUserPrompt(message: string, planJson: string, file: { path: string; purpose: string }, memory = ""): string {
+  return `${memorySection(memory)}REQUEST:\n${message}\n\nPLAN:\n${planJson}\n\nWRITE THIS FILE: ${file.path}\nPurpose: ${file.purpose}`;
 }

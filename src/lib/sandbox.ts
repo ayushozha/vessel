@@ -65,7 +65,7 @@ export async function assertInside(root: string, candidate: string): Promise<str
 }
 
 /** Read a host directory tree (only regular files, no symlinks) into guest paths, with size limits. */
-export async function readTree(root: string, guestPrefix = GUEST_ROOT, skip: readonly string[] = ["node_modules", ".git"]) {
+export async function readTree(root: string, guestPrefix = GUEST_ROOT, skip: readonly string[] = ["node_modules", ".git", ".provena"]) {
   const files: Record<string, Buffer> = {};
   let count = 0;
   let bytes = 0;
