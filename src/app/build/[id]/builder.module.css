@@ -193,3 +193,4 @@
 .memory small { display: block; color: var(--mute); font-size: 12.5px; margin-top: 2px; }
 .memory b { font-weight: 500; }
 @media (max-width: 720px) { .memoryForm { grid-template-columns: 1fr 1fr; } }
+.spendChip { font: 12.5px/1 var(--font-mono), monospace; color: var(--mute); padding: 8px 10px; border: 1px solid var(--line, #e6e6ea); border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }

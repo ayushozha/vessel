@@ -65,6 +65,9 @@ describe("runGeneration", () => {
     const end = events.at(-1) as Extract<RunEvent, { type: "run-end" }>;
     // The reply is not a plan, so the run fell back to one pass: two calls, tokens summed across both.
     expect(end).toMatchObject({ type: "run-end", status: "succeeded", outputTokens: 84, mode: "single", calls: 2 });
+    // Both calls' usage is kept; a model genai-prices does not know gets tokens but no invented price.
+    expect(end).toMatchObject({ usage: { input: 20, output: 84 }, pricing: "unknown", costUsd: null });
+    expect((await readChat(project.id))[1].metrics).toMatchObject({ usage: { input: 20, output: 84 }, pricing: "unknown" });
     expect(end.files.map((f) => f.path)).toEqual(["server.js", "public/index.html"]);
 
     expect(await readFile(project.id, "server.js")).toBe("console.log(1);\n");

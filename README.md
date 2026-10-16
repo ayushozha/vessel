@@ -31,6 +31,7 @@ Model-agnostic onboarding · ChatGPT plan usage (local mode) · OpenAI · Anthro
 | Build engine: plan, then parallel per-file generation from the connected model | Implemented, tested |
 | Local run: each project in a Wasmer SDK sandbox (Edge.js) with persistent host-side PGlite Postgres | Implemented, tested |
 | Project memory with Provena: decisions and preferences recalled on every run | Implemented, tested (needs `pnpm setup:provena`) |
+| Token and cost tracking: tokens per run and project; USD for API keys via [genai-prices](https://github.com/pydantic/genai-prices) | Implemented, tested; ChatGPT plan runs show tokens only |
 | Publish to Wasmer Edge, checks and auto-repair | Roadmap, see the product spec |
 | Landing page | Design preview only |
 

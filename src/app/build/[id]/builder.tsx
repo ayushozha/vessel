@@ -7,11 +7,13 @@ import type { ChatMessage } from "@/lib/generator/history";
 import { KINDS } from "@/lib/kinds";
 import type { Project } from "@/lib/projects";
 import type { ActiveModel } from "@/lib/readiness";
+import { formatUsd } from "@/lib/format-usd";
 
 import styles from "./builder.module.css";
 import { CodeView } from "./code-view";
 import { MemoryView } from "./memory-view";
 import { Preview } from "./preview/preview";
+import { compact, totalSpend } from "./spend";
 import { useRun, type LiveRun } from "./use-run";
 import { useRuntime } from "./use-runtime";
 
@@ -57,6 +59,13 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
           ? { title: "Nothing is running yet.", text: rt.error }
           : undefined;
 
+  const spend = useMemo(() => totalSpend(run.messages ?? []), [run.messages]);
+  const spendLabel = `${spend.priced ? formatUsd(spend.costUsd) : spend.plan ? "Plan" : "$—"} · ${compact(spend.input + spend.output)} tokens`;
+  const spendTitle =
+    `${spend.runs} run${spend.runs === 1 ? "" : "s"} · ${spend.input.toLocaleString()} input (${spend.cacheRead.toLocaleString()} cached) · ${spend.output.toLocaleString()} output tokens` +
+    (spend.priced ? `\n${formatUsd(spend.costUsd)} on API keys, priced by genai-prices` : "") +
+    (spend.plan ? `\n${spend.plan} run${spend.plan === 1 ? "" : "s"} on your ChatGPT plan (no per-token charge)` : "") +
+    (spend.unpriced ? `\n${spend.unpriced} run${spend.unpriced === 1 ? "" : "s"} on a model without a known price` : "");
   const changed = useMemo(() => new Set((run.lastRun?.files ?? lastAssistant?.files ?? []).map((f) => f.path)), [run.lastRun, lastAssistant]);
 
   useEffect(() => {
@@ -104,6 +113,9 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
         </ol>
 
         <div className={styles.actions}>
+          <span className={styles.spendChip} title={spendTitle} aria-label={`Project spend: ${spendTitle}`}>
+            {spendLabel}
+          </span>
           <Link href="/onboarding" className={styles.modelChip} title="Change model">
             <i />
             {PROVIDER_NAMES[active.provider] ?? active.provider} · {active.model}
@@ -215,6 +227,11 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                     <em>Data survives restarts until Reset data</em>
                   </li>
                 )}
+                <li data-on={spend.runs > 0}>
+                  <i />
+                  <span>Model spend · {spend.runs} run{spend.runs === 1 ? "" : "s"}</span>
+                  <em>{spendLabel}</em>
+                </li>
                 {kind.resources.map((r) => (
                   <li key={r}>
                     <i />
@@ -261,7 +278,8 @@ function AssistantTurn({ message }: { message: ChatMessage }) {
       {m && (
         <span className={styles.metrics}>
           {(m.durationMs / 1000).toFixed(1)}s{m.firstTokenMs !== null ? ` · first token ${(m.firstTokenMs / 1000).toFixed(1)}s` : ""} ·{" "}
-          {message.files?.length ?? 0} files{m.outputTokens ? ` · ${m.outputTokens.toLocaleString()} tokens` : ""} · {m.model}
+          {message.files?.length ?? 0} files{m.outputTokens ? ` · ${m.outputTokens.toLocaleString()} tokens` : ""}
+          {m.costUsd != null ? ` · ${formatUsd(m.costUsd)}` : m.pricing === "plan" ? " · plan" : ""} · {m.model}
         </span>
       )}
     </div>
