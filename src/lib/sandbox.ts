@@ -217,9 +217,12 @@ export class ProjectSandbox extends EventEmitter {
     super();
   }
 
-  /** The preview URL for PR #3's `appUrl` prop. */
+  /**
+   * The preview URL. Deliberately `localhost`, not 127.0.0.1: browsers send cookies regardless of port, so
+   * serving the untrusted app from Vessel's own host (127.0.0.1) would hand it Vessel's session cookie.
+   */
   get appUrl() {
-    return `http://127.0.0.1:${this.port}/`;
+    return `http://localhost:${this.port}/`;
   }
 
   /** Subscribe to log lines; returns an unsubscribe function. */

@@ -42,7 +42,7 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-Open **http://127.0.0.1:3000** (not `localhost`; see below).
+Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?token=…`). Every page and API call needs this launch's token, so other local processes, including generated apps in their sandboxes, cannot use Vessel. Use `127.0.0.1`, not `localhost` (see below); app previews are served from `localhost` on purpose so they never receive Vessel's cookie.
 
 ## Configuration
 
