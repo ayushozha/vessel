@@ -1,0 +1,7 @@
+{
+  "name": "vessel-starter-node-pglite",
+  "private": true,
+  "type": "module",
+  "vessel": { "stack": "node-pglite" },
+  "dependencies": { "express": "5.2.1", "pg": "8.23.0" }
+}
