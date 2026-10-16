@@ -124,7 +124,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
             <span>
               Ready · {OPTIONS.find((o) => o.id === status.active)?.name} · <b>{activeModel}</b>
             </span>
-            <Link href="/new" className={styles.continue}>
+            <Link href="/projects" className={styles.continue}>
               Continue →
             </Link>
           </>

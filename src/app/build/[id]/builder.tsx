@@ -12,6 +12,7 @@ import { formatUsd } from "@/lib/format-usd";
 import styles from "./builder.module.css";
 import { CodeView } from "./code-view";
 import { MemoryView } from "./memory-view";
+import { ProjectSwitcher } from "./project-switcher";
 import { Preview } from "./preview/preview";
 import { compact, totalSpend } from "./spend";
 import { useRun, type LiveRun } from "./use-run";
@@ -84,7 +85,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
     <div className={styles.app}>
       <header className={styles.bar}>
         <div className={styles.crumbs}>
-          <Link href="/new" className={styles.logo} aria-label="New project">
+          <Link href="/projects" className={styles.logo} aria-label="All projects">
             <svg viewBox="0 0 22 22" aria-hidden="true">
               <polygon points="11,2 2,19 20,19" fill="none" stroke="currentColor" strokeWidth="1.5" />
               <line x1="11" y1="12" x2="22" y2="8" stroke="#FF3D6E" strokeWidth="1.2" />
@@ -94,9 +95,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             Vessel
           </Link>
           <span className={styles.slash}>/</span>
-          <span className={styles.name} title={project.name}>
-            {project.name}
-          </span>
+          <ProjectSwitcher id={project.id} name={project.name} />
           <span className={styles.kindChip}>
             <i style={{ background: kind.color }} />
             {kind.name}

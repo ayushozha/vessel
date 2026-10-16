@@ -14,7 +14,9 @@
 .logo { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); text-decoration: none; font-weight: 500; letter-spacing: -0.03em; }
 .logo svg { width: 18px; height: 18px; }
 .slash { color: var(--hair); }
-.name { font-size: 15px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.name { font: inherit; font-size: 15px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; margin: -4px -2px; color: var(--ink); cursor: pointer; }
+.name:hover, .name[aria-expanded="true"] { border-color: var(--hair); background: var(--wash); }
+.name svg { width: 12px; height: 12px; flex: none; color: var(--mute); }
 .kindChip, .modelChip { display: inline-flex; align-items: center; gap: 7px; font: 500 10.5px var(--font-mono), monospace; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--hair); border-radius: 999px; padding: 5px 10px; white-space: nowrap; color: var(--ink-2); }
 .kindChip i, .modelChip i { width: 7px; height: 7px; border-radius: 50%; }
 .modelChip { text-decoration: none; text-transform: none; letter-spacing: 0.02em; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
@@ -194,3 +196,15 @@
 .memory b { font-weight: 500; }
 @media (max-width: 720px) { .memoryForm { grid-template-columns: 1fr 1fr; } }
 .spendChip { font: 12.5px/1 var(--font-mono), monospace; color: var(--mute); padding: 8px 10px; border: 1px solid var(--line, #e6e6ea); border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.switcher { position: relative; min-width: 0; }
+.nameInput { font: inherit; font-size: 15px; letter-spacing: -0.02em; padding: 4px 8px; border: 1px solid var(--ink); border-radius: 8px; min-width: 220px; color: var(--ink); background: var(--paper); }
+.switchMenu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 300px; max-width: 80vw; background: var(--paper); border: 1px solid var(--ink); border-radius: 14px; padding: 8px; display: grid; gap: 2px; box-shadow: 0 24px 60px -28px rgba(10, 10, 11, 0.35); }
+.switchMenu p { margin: 8px 10px 4px; font: 500 10.5px var(--font-mono), monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.switchMenu a, .switchMenu button { display: flex; align-items: center; gap: 10px; font: inherit; font-size: 14px; text-align: left; padding: 8px 10px; border-radius: 8px; border: 0; background: none; color: var(--ink); text-decoration: none; cursor: pointer; }
+.switchMenu a:hover, .switchMenu button:hover { background: var(--wash); }
+.switchMenu a span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.switchMenu i { width: 7px; height: 7px; border-radius: 50%; background: var(--hair); flex: none; }
+.switchMenu i[data-state="running"] { background: var(--s4); }
+.switchMenu hr { border: 0; border-top: 1px solid var(--hair); margin: 6px 4px; }
+.switchDim { padding: 6px 10px; font-size: 13px; color: var(--mute); }
+.switchNew { font-weight: 500; }
