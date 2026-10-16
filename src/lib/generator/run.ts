@@ -7,6 +7,7 @@ import { streamText, type ModelMessage } from "ai";
 import type { ResolvedModel } from "../models";
 import type { Project } from "../projects";
 import { deleteFile, listFiles, snapshot, writeFile } from "../workspace";
+import { emitWorkspaceChanged } from "../workspace-events";
 import { appendChat, appendRunEvent, readChat, type ChatMessage } from "./history";
 import { FileStreamParser } from "./parse";
 import { parsePlan, type Plan } from "./plan";
@@ -369,6 +370,8 @@ export async function* runGeneration({
   if (run.signal.aborted && !controller.signal.aborted) run.error ??= `run timed out after ${RUN_TIMEOUT_MS / 1000}s`;
 
   const status: RunStatus = controller.signal.aborted ? "cancelled" : run.error ? "failed" : "succeeded";
+  // One batch per run, so the sandbox syncs (and restarts) once rather than after every file.
+  emitWorkspaceChanged({ projectId: project.id, paths: run.files.map((f) => f.path), source: "generator" });
   const end: RunEvent = {
     type: "run-end",
     runId,

@@ -12,6 +12,7 @@ import styles from "./builder.module.css";
 import { CodeView } from "./code-view";
 import { Preview } from "./preview/preview";
 import { useRun, type LiveRun } from "./use-run";
+import { useRuntime } from "./use-runtime";
 
 const STAGES = ["Plan", "Generate", "Run", "Repair", "Verify", "Live"] as const;
 const TABS = ["Preview", "Code", "Logs", "Checks", "Resources"] as const;
@@ -25,19 +26,35 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
   const [draft, setDraft] = useState("");
   const kind = KINDS[project.kind];
   const run = useRun(project.id, project.brief);
+  const runtime = useRuntime(project.id);
+  const rt = runtime.status;
   const threadRef = useRef<HTMLDivElement>(null);
 
   // Which stages are lit: live run state first, otherwise the last finished run.
   const lastAssistant = [...(run.messages ?? [])].reverse().find((m) => m.role === "assistant");
   const generated = lastAssistant?.status === "succeeded" && (lastAssistant.files?.length ?? 0) > 0;
-  const stageState = (s: (typeof STAGES)[number]): "done" | "on" | "idle" => {
+  const stageState = (s: (typeof STAGES)[number]): "done" | "on" | "idle" | "error" => {
     if (run.live) {
       if (s === "Plan") return run.live.stage === "plan" ? "on" : "done";
       if (s === "Generate") return run.live.stage === "generate" ? "on" : "idle";
       return "idle";
     }
-    return generated && (s === "Plan" || s === "Generate") ? "done" : "idle";
+    if (s === "Plan" || s === "Generate") return generated ? "done" : "idle";
+    if (s === "Run") {
+      if (rt?.state === "running") return "done";
+      if (rt?.state === "starting" || rt?.state === "restarting") return "on";
+      if (rt?.state === "crashed") return "error";
+    }
+    return "idle";
   };
+  const previewNotice =
+    rt?.state === "starting" || rt?.state === "restarting"
+      ? { title: rt.state === "starting" ? "Starting your app…" : "Restarting…", text: "Booting it in a local Wasmer sandbox." }
+      : rt?.state === "crashed"
+        ? { title: "The app stopped.", text: rt.error ?? "See the Logs tab for details.", tone: "error" as const }
+        : rt?.error && rt.state === "idle"
+          ? { title: "Nothing is running yet.", text: rt.error }
+          : undefined;
 
   const changed = useMemo(() => new Set((run.lastRun?.files ?? lastAssistant?.files ?? []).map((f) => f.path)), [run.lastRun, lastAssistant]);
 
@@ -145,7 +162,14 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             ))}
           </div>
           <div className={styles.view} role="tabpanel" aria-label={tab}>
-            {tab === "Preview" && <Preview appUrl={null} />}
+            {tab === "Preview" && (
+              <Preview
+                appUrl={rt?.appUrl ?? null}
+                notice={previewNotice}
+                onRestart={rt && rt.state !== "idle" ? () => void runtime.act("restart") : undefined}
+                onResetData={rt?.database ? () => void runtime.act("reset") : undefined}
+              />
+            )}
             {tab === "Code" && <CodeView projectId={project.id} version={run.fileVersion} changed={changed} />}
             {tab === "Logs" && (
               <pre className={styles.logs}>
@@ -156,6 +180,12 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                   </span>
                 ))}
                 {run.running && <span className={styles.caret} />}
+                {runtime.logs.length > 0 && <span className={styles.logDim}>{"\n"}── app · {rt?.stack ?? "sandbox"} ──</span>}
+                {runtime.logs.map((l, i) => (
+                  <span key={`rt${i}`} className={l.stream === "stderr" || l.stream === "error" || l.stream === "exit" ? styles.logErr : undefined}>
+                    {new Date(l.at).toLocaleTimeString([], { hour12: false })}  [{l.source}] {l.line}
+                  </span>
+                ))}
               </pre>
             )}
             {tab === "Checks" && (
@@ -171,11 +201,23 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             )}
             {tab === "Resources" && (
               <ul className={styles.list}>
+                <li data-on={rt?.state === "running"}>
+                  <i />
+                  <span>Wasmer sandbox · {rt?.stack === "node-pglite" ? "Edge.js + PostgreSQL" : "Edge.js"}</span>
+                  <em>{rt ? (rt.state === "running" ? `Running · ${rt.appUrl}` : rt.state) : "…"}</em>
+                </li>
+                {rt?.database && (
+                  <li data-on={rt.state === "running"}>
+                    <i />
+                    <span>PostgreSQL (PGlite) · local, persistent, works offline</span>
+                    <em>Data survives restarts until Reset data</em>
+                  </li>
+                )}
                 {kind.resources.map((r) => (
                   <li key={r}>
                     <i />
                     <span>{r}</span>
-                    <em>Proposed · not provisioned</em>
+                    <em>On Wasmer Edge when you publish</em>
                   </li>
                 ))}
               </ul>

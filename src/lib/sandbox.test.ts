@@ -8,6 +8,23 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { assertInside, canTransition, depsKey, guestPath, hostEnv, hostExecArgv, PACKAGES, planSandbox, readTree, SandboxError, SandboxPool, type HostMode, type SandboxSpec } from "./sandbox";
 
 const ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
+
+/** A database provider that records calls and hands out a new port after each reset. */
+function fakeDb() {
+  const calls: string[] = [];
+  let port = 5500;
+  return {
+    calls,
+    provider: {
+      start: async (id: string) => (calls.push(`start:${id}`), port),
+      reset: async (id: string) => {
+        calls.push(`reset:${id}`);
+        port += 1;
+      },
+      stop: async (id: string) => void calls.push(`stop:${id}`),
+    },
+  };
+}
 const OTHER = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 
 /** A fake sandbox host: answers every op, records what it was sent, and can fail ops or crash on demand. */
@@ -110,17 +127,24 @@ describe("depsKey", () => {
 
 describe("planSandbox", () => {
   it("only uses pinned packages and Vessel-chosen env", () => {
-    const spec = planSandbox("node-pglite", { port: 4100, cacheDir: "/c", hasDeps: true, needsInstall: true });
+    const spec = planSandbox("node-pglite", { port: 4100, cacheDir: "/c", hasDeps: true, needsInstall: true, dbPort: 5500 });
     expect(spec.app.packages).toEqual([PACKAGES.edge]);
-    expect(spec.db?.packages).toEqual([PACKAGES.pglite]);
+    expect(spec.db).toBeUndefined(); // the database runs outside the sandbox (src/lib/database.ts)
     expect(spec.app.env).toEqual({
       PORT: "4100",
       HOST: "127.0.0.1",
       HOME: "/workspace",
       NODE_ENV: "development",
-      DATABASE_URL: "postgresql://postgres@127.0.0.1:5432/postgres?sslmode=disable",
+      DATABASE_URL: "postgresql://postgres@127.0.0.1:5500/postgres?sslmode=disable",
+      DB_HOST: "127.0.0.1",
+      DB_PORT: "5500",
+      DB_NAME: "postgres",
+      DB_USERNAME: "postgres",
+      DB_PASSWORD: "",
+      DB_POOL_MAX: "1",
     });
     expect(spec.install?.args).toContain("--ignore-scripts");
+    expect(() => planSandbox("node-pglite", { port: 1, cacheDir: "/c", hasDeps: false, needsInstall: false })).toThrow("database port");
   });
 
   it("skips the database and install when not needed", () => {
@@ -173,7 +197,8 @@ describe("SandboxPool", () => {
   it("starts with workspace files, syncs, restarts, resets data and stops", async () => {
     await workspace(ID, { "server.js": "console.log(1)", "package.json": JSON.stringify({ dependencies: { pg: "8.23.0" } }) });
     const host = fakeHost();
-    const pool = new SandboxPool(host.forkFn, ports);
+    const db = fakeDb();
+    const pool = new SandboxPool(host.forkFn, ports, db.provider);
     const sb = await pool.start(ID, "node-pglite");
     expect(sb.state).toBe("running");
     expect(sb.appUrl).toBe("http://127.0.0.1:4321/");
@@ -186,34 +211,43 @@ describe("SandboxPool", () => {
     await expect(sb.syncFiles({ "../escape.js": "x" })).rejects.toThrow(SandboxError);
 
     await sb.restart();
-    await sb.resetData();
-    expect(host.sent.map((m) => m.op)).toEqual(["start", "write", "restart", "resetData"]);
     expect(sb.state).toBe("running");
+    expect(start.spec?.app.env.DB_PORT).toBe("5500");
 
-    expect(await pool.start(ID, "node-pglite")).toBe(sb);
-    await pool.stop(ID);
+    // Reset data: stop the app, wipe the database, boot again on the fresh database's port.
+    const fresh = await pool.resetData(ID);
     expect(sb.state).toBe("stopped");
+    expect(fresh).not.toBe(sb);
+    expect(fresh.state).toBe("running");
+    expect(db.calls).toEqual([`start:${ID}`, `reset:${ID}`, `start:${ID}`]);
+    expect(host.sent.at(-1)).toMatchObject({ op: "start" });
+    expect(host.sent.at(-1)?.spec?.app.env.DB_PORT).toBe("5501");
+
+    expect(await pool.start(ID, "node-pglite")).toBe(fresh);
+    await pool.stop(ID, { withDatabase: true });
+    expect(fresh.state).toBe("stopped");
+    expect(db.calls.at(-1)).toBe(`stop:${ID}`);
     expect(pool.get(ID)).toBeUndefined();
-    await expect(sb.restart()).rejects.toThrow("stopped");
+    await expect(fresh.restart()).rejects.toThrow("stopped");
   });
 
   it("warms the package cache once per package set before booting", async () => {
     await workspace(ID, { "server.js": "x" });
     await workspace(OTHER, { "server.js": "x" });
     const host = fakeHost();
-    const pool = new SandboxPool(host.forkFn, ports);
+    const pool = new SandboxPool(host.forkFn, ports, fakeDb().provider);
     await pool.start(ID, "node-pglite");
     await pool.start(OTHER, "node");
     await pool.stop(OTHER);
     await pool.start(OTHER, "node");
-    expect(host.warms.map((w) => w.packages)).toEqual([[PACKAGES.edge, PACKAGES.pglite], [PACKAGES.edge]]);
+    expect(host.warms.map((w) => w.packages)).toEqual([[PACKAGES.edge]]); // one package set, warmed once
     expect(host.warms[0].cacheDir).toBe(path.join(home, ".wasmer"));
   });
 
   it("fails the start when packages cannot be downloaded, and retries next time", async () => {
     await workspace(ID, { "server.js": "x" });
     const failing = fakeHost({ failOps: ["warm"] });
-    const pool = new SandboxPool(failing.forkFn, ports);
+    const pool = new SandboxPool(failing.forkFn, ports, fakeDb().provider);
     await expect(pool.start(ID, "node")).rejects.toThrow("warm failed");
     expect(pool.get(ID)).toBeUndefined();
     await expect(pool.start(ID, "node")).rejects.toThrow("warm failed");
@@ -223,7 +257,7 @@ describe("SandboxPool", () => {
   it("shares one boot between concurrent starts of the same project", async () => {
     await workspace(ID, { "server.js": "x" });
     const host = fakeHost();
-    const pool = new SandboxPool(host.forkFn, ports);
+    const pool = new SandboxPool(host.forkFn, ports, fakeDb().provider);
     const [a, b] = await Promise.all([pool.start(ID, "node"), pool.start(ID, "node")]);
     expect(a).toBe(b);
     expect(host.children).toHaveLength(1);
@@ -236,42 +270,41 @@ describe("SandboxPool", () => {
     await fs.mkdir(cached, { recursive: true });
     await fs.writeFile(path.join(cached, "index.js"), "module.exports = 1");
     const host = fakeHost();
-    await new SandboxPool(host.forkFn, ports).start(ID, "node");
+    await new SandboxPool(host.forkFn, ports, fakeDb().provider).start(ID, "node");
     expect(host.sent[0].spec?.install).toBeUndefined();
     expect(host.sent[0].files).toHaveProperty(["/workspace/node_modules/express/index.js"]);
   });
 
-  it("allows one PostgreSQL project at a time because pglite's port is fixed", async () => {
+  it("gives every database project its own database, so several can run at once", async () => {
     await workspace(ID, { "server.js": "x" });
     await workspace(OTHER, { "server.js": "x" });
-    const pool = new SandboxPool(fakeHost().forkFn, ports);
+    const db = fakeDb();
+    const pool = new SandboxPool(fakeHost().forkFn, ports, db.provider);
     await pool.start(ID, "node-pglite");
-    await expect(pool.start(OTHER, "node-pglite")).rejects.toThrow("5432");
-    await pool.start(OTHER, "node"); // no database: fine
-    await pool.stop(ID);
-    await expect(pool.start(OTHER, "node-pglite")).rejects.toThrow("already running as node");
-    await pool.stop(OTHER);
-    await expect(pool.start(OTHER, "node-pglite")).resolves.toBeDefined();
+    await pool.start(OTHER, "node-pglite");
+    expect(db.calls).toEqual([`start:${ID}`, `start:${OTHER}`]);
+    await expect(pool.start(OTHER, "node")).rejects.toThrow("already running as node-pglite");
   });
 
   it("rejects unknown stacks, bad ids and resetData without a database", async () => {
     await workspace(ID, { "server.js": "x" });
-    const pool = new SandboxPool(fakeHost().forkFn, ports);
+    const pool = new SandboxPool(fakeHost().forkFn, ports, fakeDb().provider);
     await expect(pool.start(ID, "vite" as never)).rejects.toThrow("unsupported stack");
     await expect(pool.start("../../etc", "node")).rejects.toThrow("invalid project id");
-    const sb = await pool.start(ID, "node");
-    await expect(sb.resetData()).rejects.toThrow("no database");
+    await pool.start(ID, "node");
+    await expect(pool.resetData(ID)).rejects.toThrow("no database");
+    await expect(pool.resetData(OTHER)).rejects.toThrow("not running");
   });
 
   it("cleans up when the host fails to start, and marks crashes", async () => {
     await workspace(ID, { "server.js": "x" });
-    const failing = new SandboxPool(fakeHost({ failOps: ["start"] }).forkFn, ports);
+    const failing = new SandboxPool(fakeHost({ failOps: ["start"] }).forkFn, ports, fakeDb().provider);
     await expect(failing.start(ID, "node-pglite")).rejects.toThrow("start failed");
     expect(failing.get(ID)).toBeUndefined();
 
     const host = fakeHost();
-    const pool = new SandboxPool(host.forkFn, ports);
-    await pool.start(ID, "node-pglite"); // the failed start released the database lock
+    const pool = new SandboxPool(host.forkFn, ports, fakeDb().provider);
+    await pool.start(ID, "node-pglite");
     const sb = pool.get(ID)!;
     const states: string[] = [];
     sb.on("state", (s) => states.push(s));
@@ -285,7 +318,7 @@ describe("SandboxPool", () => {
   it("streams logs to subscribers and keeps a bounded buffer", async () => {
     await workspace(ID, { "server.js": "x" });
     const host = fakeHost();
-    const sb = await new SandboxPool(host.forkFn, ports).start(ID, "node");
+    const sb = await new SandboxPool(host.forkFn, ports, fakeDb().provider).start(ID, "node");
     const seen: string[] = [];
     const off = sb.onLog((e) => seen.push(e.line));
     for (let i = 0; i < 1005; i++) host.children[0].emit("message", { log: { source: "app", stream: "stdout", line: `l${i}` } });

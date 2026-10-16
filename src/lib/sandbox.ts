@@ -8,9 +8,14 @@ import { promises as fs } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 
+import { databasePool, type DatabaseProvider } from "./database";
 import { vesselHome } from "./projects";
 
-/** Stacks whose spikes passed (spikes/js). React + Vite and Next.js are not offered: see the findings doc. */
+/**
+ * Stacks whose spikes passed (spikes/js). React + Vite and Next.js are not offered: see the findings doc.
+ * Database stacks connect to a persistent PGlite host outside the sandbox (src/lib/database.ts), because
+ * wasmer/pglite keeps its data in memory and the SDK has no host mounts.
+ */
 export const STACKS = {
   node: { label: "Node.js (Edge.js)", db: false },
   "node-pglite": { label: "Node.js + PostgreSQL (Edge.js + pglite)", db: true },
@@ -22,7 +27,6 @@ export const isStack = (value: unknown): value is StackId => typeof value === "s
 export const PACKAGES = { edge: "wasmer/edgejs@0.2.5", pglite: "wasmer/pglite@0.2.0" } as const;
 /** wasmer/pglite 0.2.0 has a fixed port, and guest listeners bind the same host port. */
 export const PGLITE_PORT = 5432;
-const PGLITE_READY = `OLIPHAUNT_WASIX_SOCKET_READY ${PGLITE_PORT}`;
 const GUEST_ROOT = "/workspace";
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_FILES = 20_000;
@@ -97,14 +101,29 @@ export interface SandboxSpec {
 }
 
 /** Everything a sandbox may run, decided by Vessel from the stack alone. */
-export function planSandbox(stack: StackId, opts: { port: number; cacheDir: string; hasDeps: boolean; needsInstall: boolean }): SandboxSpec {
+export function planSandbox(
+  stack: StackId,
+  opts: { port: number; cacheDir: string; hasDeps: boolean; needsInstall: boolean; dbPort?: number },
+): SandboxSpec {
   // HOST keeps guest listeners off the LAN (they bind the same host address); HOME avoids uv_os_homedir ENOENT.
   const env: Record<string, string> = { PORT: String(opts.port), HOST: "127.0.0.1", HOME: GUEST_ROOT, NODE_ENV: "development" };
-  if (STACKS[stack].db) env.DATABASE_URL = `postgresql://postgres@127.0.0.1:${PGLITE_PORT}/postgres?sslmode=disable`;
+  if (STACKS[stack].db) {
+    if (!opts.dbPort) throw new SandboxError("database stack needs a database port");
+    // Both forms: DATABASE_URL for the starters, DB_* because that is how Wasmer Edge injects a managed database.
+    // PGlite serves one connection at a time, so pools stay at one connection locally.
+    Object.assign(env, {
+      DATABASE_URL: `postgresql://postgres@127.0.0.1:${opts.dbPort}/postgres?sslmode=disable`,
+      DB_HOST: "127.0.0.1",
+      DB_PORT: String(opts.dbPort),
+      DB_NAME: "postgres",
+      DB_USERNAME: "postgres",
+      DB_PASSWORD: "",
+      DB_POOL_MAX: "1",
+    });
+  }
   return {
     cacheDir: opts.cacheDir,
     app: { packages: [PACKAGES.edge], command: "edge", args: [`${GUEST_ROOT}/server.js`], env, ready: { port: opts.port, timeoutMs: 60_000 } },
-    ...(STACKS[stack].db && { db: { packages: [PACKAGES.pglite], command: "pglite", args: [], ready: { line: PGLITE_READY, timeoutMs: 30_000 } } }),
     ...(opts.hasDeps && opts.needsInstall && { install: { command: "pnpm", args: ["install", "--ignore-scripts", "--reporter=append-only"], timeoutMs: 300_000 } }),
   };
 }
@@ -291,18 +310,12 @@ export class ProjectSandbox extends EventEmitter {
     return this.#serial(() => this.#call("write", { files: encode(files) }));
   }
 
-  /** Restart app (and database). Wired to PR #3's `onRestart`. Note: pglite data does not survive restarts. */
+  /** Restart the app process. Wired to the preview's `onRestart`. Database data persists (it lives outside). */
   restart(): Promise<void> {
     return this.#lifecycle("restart");
   }
 
-  /** Fresh database. Wired to PR #3's `onResetData`. */
-  resetData(): Promise<void> {
-    if (!STACKS[this.stack].db) return Promise.reject(new SandboxError("this stack has no database"));
-    return this.#lifecycle("resetData");
-  }
-
-  #lifecycle(op: "restart" | "resetData"): Promise<void> {
+  #lifecycle(op: "restart"): Promise<void> {
     return this.#serial(async () => {
       if (this.state === "stopped") throw new SandboxError("sandbox is stopped");
       this.#setState("restarting");
@@ -347,9 +360,12 @@ export async function reservePort(): Promise<number> {
 /** Per-project sandbox pool. One instance per server process (see `sandboxPool`). */
 export class SandboxPool {
   #sandboxes = new Map<string, ProjectSandbox>();
-  #pgliteOwner: string | null = null;
 
-  constructor(private readonly forkFn: ForkHost = forkHost, private readonly ports: () => Promise<number> = reservePort) {}
+  constructor(
+    private readonly forkFn: ForkHost = forkHost,
+    private readonly ports: () => Promise<number> = reservePort,
+    private readonly database: DatabaseProvider = databasePool(),
+  ) {}
 
   get(projectId: string): ProjectSandbox | undefined {
     return this.#sandboxes.get(projectId);
@@ -360,7 +376,7 @@ export class SandboxPool {
 
   /** Run hosts open the cache read-only, so packages are fetched once per server process first. */
   #warm(spec: SandboxSpec): Promise<void> {
-    const packages = [...spec.app.packages, ...(spec.db?.packages ?? [])];
+    const packages = [...spec.app.packages];
     const key = `${spec.cacheDir}|${packages.join(",")}`;
     let warming = this.#warmed.get(key);
     if (!warming) {
@@ -389,22 +405,16 @@ export class SandboxPool {
       return existing;
     }
     const dirs = runtimeDirs(projectId);
-    if (STACKS[stack].db) {
-      if (this.#pgliteOwner && this.#pgliteOwner !== projectId) {
-        throw new SandboxError(`PostgreSQL port ${PGLITE_PORT} is in use by another project; stop it first`);
-      }
-      this.#pgliteOwner = projectId;
-    }
+    const dbPort = STACKS[stack].db ? await this.database.start(projectId) : undefined;
     const sandbox = new ProjectSandbox(projectId, stack, await this.ports(), this.forkFn, () => {
       if (this.#sandboxes.get(projectId) === sandbox) this.#sandboxes.delete(projectId);
-      if (this.#pgliteOwner === projectId) this.#pgliteOwner = null;
     });
     this.#sandboxes.set(projectId, sandbox);
     try {
       const files = await readTree(dirs.workspace);
       const deps = await this.#cachedDeps(dirs, files);
       Object.assign(files, deps.files);
-      const spec = planSandbox(stack, { port: sandbox.port, cacheDir: dirs.wasmerCache, hasDeps: deps.hasDeps, needsInstall: !deps.cached });
+      const spec = planSandbox(stack, { port: sandbox.port, cacheDir: dirs.wasmerCache, hasDeps: deps.hasDeps, needsInstall: !deps.cached, dbPort });
       await this.#warm(spec);
       await sandbox.boot(spec, files);
     } catch (e) {
@@ -432,8 +442,20 @@ export class SandboxPool {
     }
   }
 
-  async stop(projectId: string): Promise<void> {
+  /** Wipe the project's database and boot the app again on the fresh one. Wired to the preview's `onResetData`. */
+  async resetData(projectId: string): Promise<ProjectSandbox> {
+    const sandbox = this.#sandboxes.get(projectId);
+    if (!sandbox) throw new SandboxError("sandbox is not running");
+    if (!STACKS[sandbox.stack].db) throw new SandboxError("this stack has no database");
+    await sandbox.stop();
+    await this.database.reset(projectId);
+    return this.start(projectId, sandbox.stack);
+  }
+
+  /** Stop the app. The database keeps running (and keeps its data) unless `withDatabase` is set. */
+  async stop(projectId: string, { withDatabase = false } = {}): Promise<void> {
     await this.#sandboxes.get(projectId)?.stop();
+    if (withDatabase) await this.database.stop(projectId);
   }
 
   async stopAll(): Promise<void> {

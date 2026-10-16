@@ -81,3 +81,4 @@
   .loading { animation: none; }
   .frame { transition: none; }
 }
+.empty strong[data-tone="error"] { color: var(--s1); }

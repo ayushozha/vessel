@@ -181,3 +181,6 @@
 .dialogRow button[data-danger="true"] { background: var(--s1); border-color: var(--s1); }
 .zipSummary h4 { margin: 14px 0 6px; font: 500 10px var(--font-mono), monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); }
 .pathList { list-style: none; margin: 0; padding: 8px 10px; max-height: 150px; overflow: auto; background: var(--wash); border: 1px solid var(--hair); border-radius: 8px; font: 11.5px/1.7 var(--font-mono), monospace; color: var(--ink-2); overflow-wrap: anywhere; }
+.stages li[data-state="error"] { color: var(--s1); }
+.stages li[data-state="error"] i { background: var(--s1); }
+.list li[data-on="true"] i { border: 0; background: var(--s4); box-shadow: 0 0 0 3px color-mix(in srgb, var(--s4) 22%, transparent); }
