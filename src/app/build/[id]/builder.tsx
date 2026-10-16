@@ -10,12 +10,13 @@ import type { ActiveModel } from "@/lib/readiness";
 
 import styles from "./builder.module.css";
 import { CodeView } from "./code-view";
+import { MemoryView } from "./memory-view";
 import { Preview } from "./preview/preview";
 import { useRun, type LiveRun } from "./use-run";
 import { useRuntime } from "./use-runtime";
 
 const STAGES = ["Plan", "Generate", "Run", "Repair", "Verify", "Live"] as const;
-const TABS = ["Preview", "Code", "Logs", "Checks", "Resources"] as const;
+const TABS = ["Preview", "Code", "Logs", "Memory", "Checks", "Resources"] as const;
 type Tab = (typeof TABS)[number];
 const PROVIDER_NAMES: Record<string, string> = { chatgpt: "ChatGPT", openai: "OpenAI", anthropic: "Anthropic", glm: "GLM" };
 const kb = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`);
@@ -188,6 +189,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                 ))}
               </pre>
             )}
+            {tab === "Memory" && <MemoryView projectId={project.id} version={run.messages?.length ?? 0} />}
             {tab === "Checks" && (
               <ul className={styles.list}>
                 {kind.checks.map((c) => (

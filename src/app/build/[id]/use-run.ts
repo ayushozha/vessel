@@ -64,6 +64,9 @@ export function useRun(projectId: string, brief: string) {
         setLive((l) => l && { ...l, files: [...l.files.filter((f) => f.path !== ev.path), { path: ev.path, bytes: 0, status: "rejected", reason: ev.reason }] });
         addLog(`reject ${ev.path} · ${ev.reason}`, "err");
         break;
+      case "memory":
+        addLog(`memory ${ev.kind} · ${ev.title}${ev.scope === "user" ? " · all projects" : ""}`, "dim");
+        break;
       case "run-end":
         setLastRun(ev);
         addLog(

@@ -78,3 +78,29 @@ describe("FileStreamParser", () => {
     expect(stripFence("plain\n")).toBe("plain\n");
   });
 });
+
+describe("memory blocks", () => {
+  const OUT = 'Done.\n<memory kind="decision" scope="project" title="Soft delete tickets">Keep resolved tickets; never DELETE rows.</memory>\n<memory kind="preference" scope="user" title="Indigo accents">The user likes indigo accents.</memory><memory kind="bogus" title="x">y</memory><memory kind="fact">no title</memory>';
+
+  it("emits valid memories, drops unknown kinds or missing titles, and keeps them out of narration", () => {
+    for (const chunks of [[OUT], [...OUT]]) {
+      const events = (() => {
+        const p = new FileStreamParser();
+        return [...chunks.flatMap((c) => p.feed(c)), ...p.end()];
+      })();
+      const memories = events.filter((e) => e.type === "memory");
+      expect(memories).toEqual([
+        { type: "memory", kind: "decision", scope: "project", title: "Soft delete tickets", body: "Keep resolved tickets; never DELETE rows." },
+        { type: "memory", kind: "preference", scope: "user", title: "Indigo accents", body: "The user likes indigo accents." },
+      ]);
+      const text = events.filter((e) => e.type === "text").map((e) => (e as { text: string }).text).join("");
+      expect(text).not.toContain("memory");
+    }
+  });
+
+  it("drops a memory that was cut off", () => {
+    const p = new FileStreamParser();
+    const events = [...p.feed('<memory kind="fact" title="t">partial'), ...p.end()];
+    expect(events.some((e) => e.type === "memory")).toBe(false);
+  });
+});

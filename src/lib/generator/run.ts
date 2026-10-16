@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { streamText, type ModelMessage } from "ai";
 
+import { memoryContext, remember, type NewMemory } from "../memory";
 import type { ResolvedModel } from "../models";
 import type { Project } from "../projects";
 import { deleteFile, listFiles, snapshot, writeFile } from "../workspace";
@@ -24,6 +25,7 @@ export type RunEvent =
   | { type: "file-written"; path: string; bytes: number }
   | { type: "file-deleted"; path: string }
   | { type: "file-rejected"; path: string; reason: string }
+  | { type: "memory"; kind: string; scope: "project" | "user"; title: string }
   | {
       type: "run-end";
       runId: string;
@@ -143,6 +145,8 @@ type Run = {
   mode: "single" | "parallel";
   planMs: number | null;
   fileMs: Record<string, number>;
+  memory: string;
+  memories: NewMemory[];
 };
 
 /** No stream part for this long means the call is stuck; read per call so tests can shorten it. */
@@ -204,7 +208,7 @@ async function* streamFiles(run: Run, instructions: string, messages: ModelMessa
   let wrote = false;
   const handle = async function* (events: ReturnType<FileStreamParser["feed"]>): AsyncGenerator<RunEvent> {
     for (const ev of events) {
-      if (only && (ev.type === "text" || ev.type === "delete" || ev.path !== only)) continue;
+      if (only && (ev.type === "text" || ev.type === "delete" || ev.type === "memory" || ev.path !== only)) continue;
       if (ev.type === "text") {
         run.narration += ev.text;
         yield { type: "text", text: ev.text };
@@ -229,6 +233,11 @@ async function* streamFiles(run: Run, instructions: string, messages: ModelMessa
           yield { type: "file-written", ...written };
         } catch (e) {
           yield { type: "file-rejected", path: ev.path, reason: errorMessage(e) };
+        }
+      } else if (ev.type === "memory") {
+        if (run.memories.length < 5) {
+          run.memories.push({ kind: ev.kind, scope: ev.scope, title: ev.title, body: ev.body, authority: "agent" });
+          yield { type: "memory", kind: ev.kind, scope: ev.scope, title: ev.title };
         }
       } else if (ev.type === "delete") {
         if (await deleteFile(run.project.id, ev.path)) {
@@ -280,7 +289,7 @@ async function* generateFromPlan(run: Run, plan: Plan): AsyncGenerator<RunEvent>
   const jobs = plan.files.map((file) =>
     async function* (): AsyncGenerator<RunEvent> {
       const t0 = Date.now();
-      const messages: ModelMessage[] = [{ role: "user", content: fileUserPrompt(run.message, planJson, file) }];
+      const messages: ModelMessage[] = [{ role: "user", content: fileUserPrompt(run.message, planJson, file, run.memory) }];
       // A stuck call gets one fresh attempt; a second stall fails the run (other files still land).
       for (let attempt = 1; attempt <= 2 && !run.signal.aborted; attempt++) {
         if ((yield* streamFiles(run, instructions, messages, file.path)) === "done") break;
@@ -301,10 +310,15 @@ async function* generate(run: Run): AsyncGenerator<RunEvent> {
   const { project, message, resolved } = run;
   const chat = await readChat(project.id);
   const hasFiles = (await listFiles(project.id)).length > 0;
+  run.memory = await memoryContext(project.id).catch(() => "");
   const messages: ModelMessage[] = [
     ...historyMessages(chat),
-    { role: "user", content: userPrompt(message, hasFiles ? await snapshot(project.id) : "") },
+    { role: "user", content: userPrompt(message, hasFiles ? await snapshot(project.id) : "", run.memory) },
   ];
+  // The first brief is the project's founding decision: every later edit should be able to see it.
+  if (!hasFiles && !chat.length) {
+    run.memories.push({ kind: "decision", scope: "project", title: "Original brief", body: message.slice(0, 2000), authority: "human" });
+  }
   await appendChat(project.id, { role: "user", text: message, at: new Date().toISOString(), runId: run.runId });
 
   yield { type: "run-start", runId: run.runId, provider: resolved.provider, model: resolved.modelId };
@@ -354,6 +368,8 @@ export async function* runGeneration({
     mode: "single",
     planMs: null,
     fileMs: {},
+    memory: "",
+    memories: [],
   };
   const log = (e: RunEvent) => (e.type === "file-progress" || e.type === "text" ? undefined : appendRunEvent(project.id, runId, e));
 
@@ -372,6 +388,9 @@ export async function* runGeneration({
   const status: RunStatus = controller.signal.aborted ? "cancelled" : run.error ? "failed" : "succeeded";
   // One batch per run, so the sandbox syncs (and restarts) once rather than after every file.
   emitWorkspaceChanged({ projectId: project.id, paths: run.files.map((f) => f.path), source: "generator" });
+  // In the background: the reply should not wait on Provena. Failed runs keep only what the user said.
+  const keep = status === "succeeded" ? run.memories : run.memories.filter((m) => m.authority === "human");
+  if (keep.length || run.files.length) void remember(project.id, keep);
   const end: RunEvent = {
     type: "run-end",
     runId,
