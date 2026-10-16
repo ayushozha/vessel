@@ -63,7 +63,8 @@ describe("runGeneration", () => {
     expect(events).toContainEqual({ type: "file-rejected", path: "../evil.js", reason: "path escapes the workspace" });
 
     const end = events.at(-1) as Extract<RunEvent, { type: "run-end" }>;
-    expect(end).toMatchObject({ type: "run-end", status: "succeeded", outputTokens: 42 });
+    // The reply is not a plan, so the run fell back to one pass: two calls, tokens summed across both.
+    expect(end).toMatchObject({ type: "run-end", status: "succeeded", outputTokens: 84, mode: "single", calls: 2 });
     expect(end.files.map((f) => f.path)).toEqual(["server.js", "public/index.html"]);
 
     expect(await readFile(project.id, "server.js")).toBe("console.log(1);\n");
@@ -72,10 +73,12 @@ describe("runGeneration", () => {
     const chat = await readChat(project.id);
     expect(chat.map((m) => m.role)).toEqual(["user", "assistant"]);
     expect(chat[1]).toMatchObject({ status: "succeeded", text: expect.stringContaining("Building a tiny API.") });
-    expect((await readRunEvents(project.id, end.runId)).map((e) => (e as { type: string }).type)).toContain("file-written");
+    const logged = (await readRunEvents(project.id, end.runId)).map((e) => (e as { type: string }).type);
+    expect(logged).toContain("file-written");
+    expect(logged).toContain("plan-fallback");
 
-    // The model got the kind's instructions and no file snapshot on the first turn.
-    const call = model.doStreamCalls[0];
+    // The single pass got the kind's instructions and no file snapshot on the first turn.
+    const call = model.doStreamCalls[1];
     expect(JSON.stringify(call.prompt)).toContain("YOU ARE BUILDING: a full-stack web app");
     expect(JSON.stringify(call.prompt)).not.toContain("CURRENT PROJECT FILES");
   });
