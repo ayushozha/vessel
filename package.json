@@ -15,8 +15,8 @@
     "@ai-sdk/anthropic": "4.0.71",
     "@ai-sdk/openai": "4.0.83",
     "@ai-sdk/openai-compatible": "3.0.62",
-    "ai": "7.0.127",
     "@wasmer/sdk": "0.19.1",
+    "ai": "7.0.127",
     "jose": "6.2.12",
     "next": "16.3.8",
     "oauth4webapi": "3.8.8",
@@ -31,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "fflate": "0.8.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "5.0.3"
