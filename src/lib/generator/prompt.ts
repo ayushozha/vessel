@@ -74,3 +74,63 @@ export function userPrompt(message: string, snapshot: string): string {
     ? `CURRENT PROJECT FILES:\n${snapshot}\n\nREQUEST:\n${message}\n\nEmit only the files that change.`
     : `REQUEST:\n${message}`;
 }
+
+const PLAN_FORMAT = `
+OUTPUT FORMAT (strict): reply with ONE JSON object and nothing else (no prose, no markdown fences):
+{
+  "summary": "1-3 short sentences saying what you will build",
+  "files": [{ "path": "server.js", "purpose": "one line: what this file does" }],
+  "contracts": {
+    "routes": [{ "method": "GET", "path": "/api/items", "request": "query/body shape", "response": "status + exact JSON shape" }],
+    "tables": [{ "name": "items", "columns": "id SERIAL PRIMARY KEY, title TEXT NOT NULL, ..." }],
+    "dom": ["#item-list: <ul> the frontend renders items into", ".item-done: class on resolved rows"],
+    "env": ["PORT", "DB_HOST"],
+    "packages": { "express": "4.21.2" },
+    "notes": "shared conventions every file must follow (module format, error JSON shape, date format, script/style file names)"
+  }
+}
+RULES:
+- Separate engineers will write each file at the same time and see ONLY this plan, so the contracts must be exact: every route
+  with its JSON field names and status codes, every table column, every DOM id/class that one file defines and another uses,
+  every env var, and every npm package with its exact version.
+- List every file the project needs (package.json, server, frontend HTML/CSS/JS, .env.example, README.md), largest first.
+- Keep it small: the fewest files that make a polished, working result.
+- Be terse: short strings, no prose. The whole plan should stay under about 600 words; it is written before any file starts.
+`.trim();
+
+/** Instructions for the plan call of a first generation. */
+export function planSystemPrompt(kind: Kind): string {
+  return [
+    "You are Vessel, an expert full-stack engineer that turns one sentence into a working, polished application. First, plan it.",
+    PLAN_FORMAT,
+    COMMON,
+    BY_KIND[kind].trim(),
+  ].join("\n\n");
+}
+
+const FILE_FORMAT = `
+OUTPUT FORMAT (strict):
+- You write exactly ONE file of a project whose other files are being written at the same time from the same plan.
+- Reply with only that file as one complete block, nothing before or after it:
+<file path="ASSIGNED/PATH">
+...entire file content...
+</file>
+- Follow the plan's contracts exactly (routes, JSON field names, status codes, table columns, DOM ids/classes, env vars,
+  package versions, file names) so the files fit together. Do not rely on anything the plan does not define.
+- Always write the complete file, never diffs, ellipses or placeholders.
+`.trim();
+
+/** Instructions shared by every per-file call (identical across files so providers can cache the prefix). */
+export function fileSystemPrompt(kind: Kind): string {
+  return [
+    "You are Vessel, an expert full-stack engineer writing one file of a polished application.",
+    FILE_FORMAT,
+    COMMON,
+    BY_KIND[kind].trim(),
+  ].join("\n\n");
+}
+
+/** The per-file user turn: request and plan first (shared prefix), the assigned file last. */
+export function fileUserPrompt(message: string, planJson: string, file: { path: string; purpose: string }): string {
+  return `REQUEST:\n${message}\n\nPLAN:\n${planJson}\n\nWRITE THIS FILE: ${file.path}\nPurpose: ${file.purpose}`;
+}

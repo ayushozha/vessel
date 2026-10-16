@@ -14,7 +14,16 @@ export const ChatMessage = z.object({
   status: z.enum(["succeeded", "failed", "cancelled"]).optional(),
   error: z.string().optional(),
   metrics: z
-    .object({ durationMs: z.number(), firstTokenMs: z.number().nullable(), outputTokens: z.number().nullable(), model: z.string() })
+    .object({
+      durationMs: z.number(),
+      firstTokenMs: z.number().nullable(),
+      outputTokens: z.number().nullable(),
+      model: z.string(),
+      mode: z.enum(["single", "parallel"]).optional(),
+      planMs: z.number().nullable().optional(),
+      firstFileMs: z.number().nullable().optional(),
+      calls: z.number().optional(),
+    })
     .optional(),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;

@@ -69,6 +69,7 @@ export function useRun(projectId: string, brief: string) {
         addLog(
           `run ${ev.status} · ${(ev.durationMs / 1000).toFixed(1)}s` +
             (ev.firstTokenMs !== null ? ` · first token ${(ev.firstTokenMs / 1000).toFixed(1)}s` : "") +
+            (ev.mode === "parallel" && ev.planMs != null ? ` · plan ${(ev.planMs / 1000).toFixed(1)}s, ${ev.calls ?? 0} calls` : "") +
             ` · ${ev.files.length} file${ev.files.length === 1 ? "" : "s"}` +
             (ev.outputTokens ? ` · ${ev.outputTokens.toLocaleString()} output tokens` : "") +
             (ev.error ? ` · ${ev.error}` : ""),

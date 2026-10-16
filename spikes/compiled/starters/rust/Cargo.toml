@@ -1,0 +1,9 @@
+[package]
+name = "vessel-rust-starter"
+version = "0.1.0"
+edition = "2021"
+
+# wasm32-wasip1 std has no server sockets; the `wasix` crate calls Wasmer's
+# WASIX socket syscalls directly. Pinned exactly; official wasix-org crate.
+[dependencies]
+wasix = "=0.13.2"
