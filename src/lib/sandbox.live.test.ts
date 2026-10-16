@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { databasePool } from "./database";
 import { SandboxPool, type ProjectSandbox } from "./sandbox";
 
 const live = process.env.VESSEL_LIVE_SANDBOX === "1";
@@ -41,6 +42,7 @@ describe.skipIf(!live)("live sandbox (VESSEL_LIVE_SANDBOX=1)", () => {
 
   afterAll(async () => {
     await pool.stopAll();
+    await databasePool().stopAll();
     delete process.env.VESSEL_HOME;
     await fs.rm(home, { recursive: true, force: true });
   });
@@ -52,7 +54,7 @@ describe.skipIf(!live)("live sandbox (VESSEL_LIVE_SANDBOX=1)", () => {
     const health = await call(sb, "/api/health");
     expect(health.status).toBe(200);
     expect(health.body).toContain("wasi/wasm32");
-    expect(health.body).toContain("PostgreSQL 18");
+    expect(health.body).toContain("PostgreSQL");
     expect((await call(sb, "/")).body).toContain("<h1>Todos</h1>");
 
     expect((await call(sb, "/api/todos", { method: "POST", body: JSON.stringify({ title: "ship" }) })).status).toBe(201);
@@ -66,9 +68,12 @@ describe.skipIf(!live)("live sandbox (VESSEL_LIVE_SANDBOX=1)", () => {
     expect(sb.state).toBe("running");
     expect((await call(sb, "/api/health")).status).toBe(200);
 
-    await sb.resetData();
-    expect(JSON.parse((await call(sb, "/api/todos")).body)).toEqual([]);
-    expect(sb.logs.some((l) => l.source === "app" && l.line.includes("listening on"))).toBe(true);
+    // Data lives in the persistent PGlite host, so it survives an app restart.
+    expect(JSON.parse((await call(sb, "/api/todos")).body)).toEqual([{ id: 1, title: "ship", done: false }]);
+
+    const fresh = await pool.resetData(PG_ID);
+    expect(JSON.parse((await call(fresh, "/api/todos")).body)).toEqual([]);
+    expect(fresh.logs.some((l) => l.source === "app" && l.line.includes("listening on"))).toBe(true);
   }, 300_000);
 
   it("runs the MCP starter: initialize, list and call tools", async () => {

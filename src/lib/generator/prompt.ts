@@ -19,9 +19,11 @@ OUTPUT FORMAT (strict):
 const COMMON = `
 RUNTIME:
 - The app runs inside a Wasmer sandbox on Edge.js (Node.js 24 compatible) locally, and on Wasmer Edge when published.
-- Listen on process.env.PORT (default 3000) and host 0.0.0.0. Use ES modules ("type": "module").
-- Keep dependencies few, well known and pure JavaScript (no native addons). Pin exact versions in package.json.
-- package.json must have "start": "node server.js" (or the entry file you create).
+- The entry file is always server.js at the project root. Listen on process.env.PORT (default 3000) and process.env.HOST (default 0.0.0.0).
+- Use ES modules ("type": "module"), except where the kind says otherwise.
+- Keep dependencies few, well known and pure JavaScript (no native addons). Pin exact versions in package.json. Prefer these exact versions, which are pre-installed for instant startup: express 5.2.1, pg 8.23.0, zod 4.6.5, @modelcontextprotocol/sdk 1.31.0.
+- package.json must have "start": "node server.js".
+- Avoid child_process (especially spawnSync) and fs.watch; neither is available in the sandbox.
 - No build step for the frontend: plain HTML, CSS and modern JavaScript served from public/. Make it responsive, accessible and good looking with a clean, modern design.
 - Keep each file under 400 lines and the project under 25 files.
 `.trim();
@@ -29,6 +31,7 @@ RUNTIME:
 const DATABASE = `
 DATA:
 - Use PostgreSQL through the "pg" package. Read DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD from the environment (this is how Wasmer Edge injects a managed database).
+- Create the pool with max: Number(process.env.DB_POOL_MAX || 10): the local database serves one connection at a time and sets DB_POOL_MAX=1.
 - Create tables on startup with CREATE TABLE IF NOT EXISTS. Never drop or truncate existing data; when the schema must grow, use ALTER TABLE ... ADD COLUMN IF NOT EXISTS so records survive edits.
 - Expose a GET /api/health endpoint returning {"ok":true} after the database is reachable.
 `.trim();
@@ -49,6 +52,7 @@ ${DATABASE}`,
   mcp: `
 YOU ARE BUILDING: a Model Context Protocol server exposing tools over HTTP.
 - Use the official "@modelcontextprotocol/sdk" with the Streamable HTTP transport mounted at /mcp, plus GET /api/health.
+- Write this server as CommonJS (require, no "type": "module"): the SDK's ESM build does not load on Edge.js.
 - Define each tool with a clear name, description and zod input schema; validate inputs and return structured, useful results.
 - Serve a small public/index.html that documents the tools and shows how to connect from Claude, ChatGPT or Cursor.
 - No database unless the request clearly needs stored data.`,

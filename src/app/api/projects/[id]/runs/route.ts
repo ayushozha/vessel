@@ -5,6 +5,7 @@ import { claimRun, isRunning, runGeneration, stopRun } from "@/lib/generator/run
 import { guardLocal } from "@/lib/guard";
 import { resolveModel } from "@/lib/models";
 import { getProject } from "@/lib/projects";
+import { initRuntimeSync } from "@/lib/runtime";
 
 const Body = z.object({ message: z.string().trim().min(1, "Write a message.").max(8000) });
 
@@ -34,6 +35,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/projects/[i
   }
   if (!resolved) return Response.json({ error: "Connect a model and choose one first." }, { status: 409 });
 
+  initRuntimeSync(); // so this run's files flow into the project's sandbox
   const controller = claimRun(project.id);
   if (!controller) return Response.json({ error: "A run is already in progress for this project." }, { status: 409 });
   // Closing the request (Stop, tab closed) cancels the run.

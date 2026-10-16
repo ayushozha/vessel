@@ -31,9 +31,11 @@ type Props = {
   /** Restart the app process and wipe data; undefined until the sandbox runtime exists. */
   onRestart?: () => void;
   onResetData?: () => void;
+  /** Shown instead of the empty state while the app is starting, has crashed, or cannot run yet. */
+  notice?: { title: string; text: string; tone?: "error" };
 };
 
-export function Preview({ appUrl, onRestart, onResetData }: Props) {
+export function Preview({ appUrl, onRestart, onResetData, notice }: Props) {
   const [deviceId, setDeviceId] = useState("responsive");
   const [landscape, setLandscape] = useState(false);
   const [zoom, setZoom] = useState<Zoom>("fit");
@@ -273,8 +275,8 @@ export function Preview({ appUrl, onRestart, onResetData }: Props) {
                 </>
               ) : (
                 <div className={styles.empty}>
-                  <strong>Nothing is running yet.</strong>
-                  <p>When the app starts in its Wasmer sandbox, it opens here. You can also enter any URL above to try the device sizes.</p>
+                  <strong data-tone={notice?.tone}>{notice?.title ?? "Nothing is running yet."}</strong>
+                  <p>{notice?.text ?? "When the app starts in its Wasmer sandbox, it opens here. You can also enter any URL above to try the device sizes."}</p>
                 </div>
               )}
             </div>
