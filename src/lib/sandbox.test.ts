@@ -201,7 +201,7 @@ describe("SandboxPool", () => {
     const pool = new SandboxPool(host.forkFn, ports, db.provider);
     const sb = await pool.start(ID, "node-pglite");
     expect(sb.state).toBe("running");
-    expect(sb.appUrl).toBe("http://127.0.0.1:4321/");
+    expect(sb.appUrl).toBe("http://localhost:4321/"); // never Vessel's own host: cookies ignore ports
     const start = host.sent[0];
     expect(Object.keys(start.files ?? {}).sort()).toEqual(["/workspace/package.json", "/workspace/server.js"]);
     expect(start.spec?.install).toBeDefined(); // nothing in the deps cache, so the guest installs
