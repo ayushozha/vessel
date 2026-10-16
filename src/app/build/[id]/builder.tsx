@@ -8,6 +8,7 @@ import type { Project } from "@/lib/projects";
 import type { ActiveModel } from "@/lib/readiness";
 
 import styles from "./builder.module.css";
+import { Preview } from "./preview/preview";
 
 const STAGES = ["Plan", "Generate", "Run", "Repair", "Verify", "Live"] as const;
 const TABS = ["Preview", "Code", "Logs", "Checks", "Resources"] as const;
@@ -120,15 +121,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             ))}
           </div>
           <div className={styles.view} role="tabpanel" aria-label={tab}>
-            {tab === "Preview" && (
-              <div className={styles.browser}>
-                <div className={styles.url}>
-                  <i />
-                  Not deployed yet
-                </div>
-                <Empty title="Nothing is live yet." text="When a run publishes, the live Wasmer URL opens here." />
-              </div>
-            )}
+            {tab === "Preview" && <Preview appUrl={null} />}
             {tab === "Code" && (
               <div className={styles.code}>
                 <ul className={styles.tree}>
