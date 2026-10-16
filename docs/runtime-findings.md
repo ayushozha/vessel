@@ -117,6 +117,33 @@ these tests. The live test (`VESSEL_LIVE_SANDBOX=1`) passes with these flags: bo
   `edge-linux-amd64` and `edge-wasix` only, and the installer is `curl -fsSL https://edgejs.org/install | bash`.
   It could be compared under WSL with the user's approval to download and run the installer.
 
+## Persistent database (host PGlite)
+
+`wasmer/pglite@0.2.0` cannot keep data: it ignores `PGDATA` and `-D`, writes nothing under `/workspace`, and
+`@wasmer/sdk` 0.19.1 has no host mounts (sandbox files live in memory; `sandbox.fs` only reaches `/workspace`).
+`node:sqlite` does not load in Edge.js (`compileForPublicLoader` fails), so SQLite-in-the-guest is out too.
+
+So database stacks use **PGlite on the host** (`src/lib/database.ts`, `src/lib/db-host.mjs`):
+`@electric-sql/pglite` 0.5.8 with an on-disk data directory at `projects/<id>/pgdata`, served over TCP by
+`@electric-sql/pglite-socket` 0.2.11 on a random `127.0.0.1` port, one host process per project. The app still
+runs in its Wasmer sandbox and connects with a normal `pg` client (`DATABASE_URL` and Wasmer Edge-style `DB_*`).
+
+| Check | Result |
+|---|---|
+| Data after app restart | kept |
+| Data after stopping app **and** database, then starting | kept (live: 4 tickets before and after) |
+| First start / reopen | ~3.5 s / ~150 ms |
+| Several database projects at once | yes: per-project ports replace pglite's fixed 5432 |
+| Reset data | stops the app, deletes `pgdata`, boots again on a fresh database |
+| Offline | yes: nothing leaves the machine |
+
+PGlite serves one connection at a time, so Vessel sets `DB_POOL_MAX=1` and the generator sizes pools from it.
+
+**Security:** the database host runs **without** Node's permission model, because PGlite needs `process.binding`,
+which the permission model blocks with no opt-out. It runs only Vessel's code (generated code never executes
+there; apps send SQL over TCP), in its own process with a scrubbed environment (no API keys). A guest that
+escapes Edge.js can reach it over TCP like any other local port (see "Network is unrestricted" above).
+
 ## Runtime facts that shaped the design
 
 | Fact | Evidence | Consequence |
@@ -153,7 +180,7 @@ cache). Sandbox creation with Edge.js is ~1.4s every time; an Edge.js process st
 | `GET /api/health` first / warm | 19ms / 7ms | 25ms / 9ms |
 | **Total** | **11.3s** | **4.1s** |
 
-### (b) Edge.js + Express + `pg` + pglite: PASS (with resets)
+### (b) Edge.js + Express + `pg` + pglite: PASS (with resets; superseded by host PGlite, see "Persistent database")
 
 `node spikes/js/b-express-pglite.mjs`. Two sandboxes in one client, both `network: host`.
 
