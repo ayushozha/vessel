@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { assertInside, canTransition, depsKey, guestPath, PACKAGES, planSandbox, readTree, SandboxError, SandboxPool, type SandboxSpec } from "./sandbox";
+import { assertInside, canTransition, depsKey, guestPath, hostEnv, hostExecArgv, PACKAGES, planSandbox, readTree, SandboxError, SandboxPool, type HostMode, type SandboxSpec } from "./sandbox";
 
 const ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
 const OTHER = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -14,13 +14,15 @@ const OTHER = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 function fakeHost(behaviour: { failOps?: string[] } = {}) {
   const sent: { op: string; spec?: SandboxSpec; files?: Record<string, string | null> }[] = [];
   const children: EventEmitter[] = [];
-  const forkFn = () => {
+  const warms: { cacheDir: string; packages: string[] }[] = [];
+  const forkFn = (_cacheDir: string, mode: HostMode) => {
     const child = Object.assign(new EventEmitter(), {
       connected: true,
       stderr: null,
       kill: () => child.emit("exit", 0),
-      send(message: { id: number; op: string }) {
-        sent.push(message);
+      send(message: { id: number; op: string; cacheDir?: string; packages?: string[] }) {
+        if (mode === "warm") warms.push({ cacheDir: message.cacheDir!, packages: message.packages! });
+        else sent.push(message);
         setImmediate(() => {
           if (behaviour.failOps?.includes(message.op)) child.emit("message", { id: message.id, ok: false, error: `${message.op} failed` });
           else child.emit("message", { id: message.id, ok: true });
@@ -29,10 +31,10 @@ function fakeHost(behaviour: { failOps?: string[] } = {}) {
         return true;
       },
     });
-    children.push(child);
+    if (mode === "run") children.push(child);
     return child as unknown as ChildProcess;
   };
-  return { forkFn, sent, children };
+  return { forkFn, sent, children, warms };
 }
 
 let home: string;
@@ -129,6 +131,32 @@ describe("planSandbox", () => {
   });
 });
 
+describe("host hardening", () => {
+  const paths = { nodeModules: "/repo/node_modules", hostScript: "/repo/src/lib/sandbox-host.mjs", cacheDir: "/home/.wasmer" };
+
+  it("runs guest hosts under the permission model with read-only access only", () => {
+    const flags = hostExecArgv(paths, "run");
+    expect(flags).toEqual([
+      "--experimental-wasm-jspi",
+      "--permission",
+      "--allow-fs-read=/repo/node_modules",
+      "--allow-fs-read=/repo/src/lib/sandbox-host.mjs",
+      "--allow-fs-read=/home/.wasmer",
+      "--allow-worker",
+    ]);
+    expect(flags.join(" ")).not.toMatch(/allow-fs-write|allow-child-process|allow-addons|allow-wasi|allow-inspector/);
+  });
+
+  it("lets only the warm host write the cache", () => {
+    expect(hostExecArgv(paths, "warm")).toContain("--allow-fs-write=/home/.wasmer");
+  });
+
+  it("passes no secrets to the host environment", () => {
+    const env = hostEnv({ PATH: "/bin", SystemRoot: "C:/Windows", OPENAI_API_KEY: "sk-x", USERPROFILE: "C:/Users/me", HOME: "/home/me", NODE_ENV: "development" });
+    expect(env).toEqual({ PATH: "/bin", SystemRoot: "C:/Windows" });
+  });
+});
+
 describe("lifecycle transitions", () => {
   it("allows the expected edges only", () => {
     expect(canTransition("starting", "running")).toBe(true);
@@ -167,6 +195,29 @@ describe("SandboxPool", () => {
     expect(sb.state).toBe("stopped");
     expect(pool.get(ID)).toBeUndefined();
     await expect(sb.restart()).rejects.toThrow("stopped");
+  });
+
+  it("warms the package cache once per package set before booting", async () => {
+    await workspace(ID, { "server.js": "x" });
+    await workspace(OTHER, { "server.js": "x" });
+    const host = fakeHost();
+    const pool = new SandboxPool(host.forkFn, ports);
+    await pool.start(ID, "node-pglite");
+    await pool.start(OTHER, "node");
+    await pool.stop(OTHER);
+    await pool.start(OTHER, "node");
+    expect(host.warms.map((w) => w.packages)).toEqual([[PACKAGES.edge, PACKAGES.pglite], [PACKAGES.edge]]);
+    expect(host.warms[0].cacheDir).toBe(path.join(home, ".wasmer"));
+  });
+
+  it("fails the start when packages cannot be downloaded, and retries next time", async () => {
+    await workspace(ID, { "server.js": "x" });
+    const failing = fakeHost({ failOps: ["warm"] });
+    const pool = new SandboxPool(failing.forkFn, ports);
+    await expect(pool.start(ID, "node")).rejects.toThrow("warm failed");
+    expect(pool.get(ID)).toBeUndefined();
+    await expect(pool.start(ID, "node")).rejects.toThrow("warm failed");
+    expect(failing.children).toHaveLength(0); // no guest host was started
   });
 
   it("shares one boot between concurrent starts of the same project", async () => {

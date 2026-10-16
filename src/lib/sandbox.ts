@@ -124,19 +124,59 @@ export const canTransition = (from: SandboxState, to: SandboxState) => TRANSITIO
 
 type Reply = { id: number; ok: boolean; error?: string };
 type HostMessage = Partial<Reply> & { log?: Omit<LogEntry, "at">; exit?: { source: string; code: number; reason: string } };
-export type ForkHost = (cacheDir: string) => ChildProcess;
+/** "run" hosts execute guest code; the one-off "warm" host only downloads packages into the cache. */
+export type HostMode = "run" | "warm";
+export type ForkHost = (cacheDir: string, mode: HostMode) => ChildProcess;
 
-/** Fork the host with JSPI enabled (Node 24 rejects the flag in NODE_OPTIONS) and a scrubbed environment. */
-export const forkHost: ForkHost = () => {
+/**
+ * Node flags for a sandbox host. Guest JS in Edge.js can reach the host `process` (see the Security model
+ * in docs/runtime-findings.md), so hosts run under Node's permission model. Every flag here was checked
+ * by spikes/js/f-permission.mjs: run hosts may only read the SDK code and the Wasmer cache (opened
+ * read-only); they get no fs writes, child processes, addons, WASI or inspector. `--allow-worker` is
+ * required by the SDK. Only the warm host, which runs no guest code, may write the cache.
+ */
+export function hostExecArgv(paths: { nodeModules: string; hostScript: string; cacheDir: string }, mode: HostMode): string[] {
+  return [
+    "--experimental-wasm-jspi", // Node 24 rejects this in NODE_OPTIONS; the SDK needs JSPI
+    "--permission",
+    `--allow-fs-read=${paths.nodeModules}`,
+    `--allow-fs-read=${paths.hostScript}`,
+    `--allow-fs-read=${paths.cacheDir}`,
+    "--allow-worker",
+    ...(mode === "warm" ? [`--allow-fs-write=${paths.cacheDir}`] : []),
+  ];
+}
+
+/** Host env: no API keys or user secrets, only what Windows networking and temp files need. */
+export function hostEnv(source: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const env: Record<string, string> = {};
-  for (const key of ["SystemRoot", "windir", "TEMP", "TMP", "PATH"]) if (process.env[key]) env[key] = process.env[key]!;
-  return fork(/*turbopackIgnore: true*/ path.join(process.cwd(), "src", "lib", "sandbox-host.mjs"), [], {
-    execArgv: ["--experimental-wasm-jspi"],
-    env: env as NodeJS.ProcessEnv, // Next types NODE_ENV as required; the host gets none on purpose
+  for (const key of ["SystemRoot", "windir", "TEMP", "TMP", "PATH"]) if (source[key]) env[key] = source[key]!;
+  return env;
+}
+
+export const forkHost: ForkHost = (cacheDir, mode) => {
+  const hostScript = path.join(process.cwd(), "src", "lib", "sandbox-host.mjs");
+  return fork(/*turbopackIgnore: true*/ hostScript, [], {
+    execArgv: hostExecArgv({ nodeModules: path.join(process.cwd(), "node_modules"), hostScript, cacheDir }, mode),
+    env: hostEnv() as NodeJS.ProcessEnv, // Next types NODE_ENV as required; the host gets none on purpose
     cwd: process.cwd(),
     stdio: ["ignore", "ignore", "pipe", "ipc"],
   });
 };
+
+/** Download packages into the shared cache in a short-lived host that never runs guest code. */
+async function warmCache(forkFn: ForkHost, cacheDir: string, packages: string[]): Promise<void> {
+  const child = forkFn(cacheDir, "warm");
+  try {
+    await new Promise<void>((resolve, reject) => {
+      child.on("message", (m: HostMessage) => (m.id === 1 ? (m.ok ? resolve() : reject(new SandboxError(m.error ?? "package download failed"))) : undefined));
+      child.on("exit", (code) => reject(new SandboxError(`package download host exited (${code})`)));
+      child.send({ id: 1, op: "warm", cacheDir, packages });
+    });
+  } finally {
+    child.kill();
+  }
+}
 
 /** One project's live sandbox. Create through SandboxPool. */
 export class ProjectSandbox extends EventEmitter {
@@ -183,7 +223,7 @@ export class ProjectSandbox extends EventEmitter {
   }
 
   #spawnHost(cacheDir: string) {
-    const child = this.forkFn(cacheDir);
+    const child = this.forkFn(cacheDir, "run");
     this.#child = child;
     child.stderr?.setEncoding("utf8").on("data", (chunk: string) => chunk.split("\n").filter(Boolean).forEach((l) => this.#log("host", "stderr", l)));
     child.on("message", (m: HostMessage) => {
@@ -316,6 +356,20 @@ export class SandboxPool {
   }
 
   #starting = new Map<string, Promise<ProjectSandbox>>();
+  #warmed = new Map<string, Promise<void>>();
+
+  /** Run hosts open the cache read-only, so packages are fetched once per server process first. */
+  #warm(spec: SandboxSpec): Promise<void> {
+    const packages = [...spec.app.packages, ...(spec.db?.packages ?? [])];
+    const key = `${spec.cacheDir}|${packages.join(",")}`;
+    let warming = this.#warmed.get(key);
+    if (!warming) {
+      warming = warmCache(this.forkFn, spec.cacheDir, packages);
+      warming.catch(() => this.#warmed.delete(key)); // retry next time
+      this.#warmed.set(key, warming);
+    }
+    return warming;
+  }
 
   /** Start (or return the running) sandbox for a project, seeded from its workspace directory. */
   start(projectId: string, stack: StackId): Promise<ProjectSandbox> {
@@ -351,6 +405,7 @@ export class SandboxPool {
       const deps = await this.#cachedDeps(dirs, files);
       Object.assign(files, deps.files);
       const spec = planSandbox(stack, { port: sandbox.port, cacheDir: dirs.wasmerCache, hasDeps: deps.hasDeps, needsInstall: !deps.cached });
+      await this.#warm(spec);
       await sandbox.boot(spec, files);
     } catch (e) {
       await sandbox.stop().catch(() => {});

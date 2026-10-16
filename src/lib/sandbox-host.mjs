@@ -76,9 +76,19 @@ async function startAll() {
 }
 
 const ops = {
+  /** Download packages into the cache. Runs in the "warm" host, which never starts a sandbox. */
+  async warm(args) {
+    const client = new Wasmer({ cache: { directory: args.cacheDir } });
+    try {
+      await client.packages.loadMany(args.packages);
+    } finally {
+      await client.close().catch(() => {});
+    }
+  },
   async start(args) {
     spec = args.spec;
-    wasmer = new Wasmer({ cache: { directory: spec.cacheDir }, outputBytes: 256 * 1024 });
+    // Read-only: this process runs guest code and has no fs write permission (see sandbox.ts hostExecArgv).
+    wasmer = new Wasmer({ cache: { directory: spec.cacheDir, readOnly: true }, outputBytes: 256 * 1024 });
     if (spec.db) boxes.db = await wasmer.sandboxes.create({ packages: spec.db.packages, network: { mode: "host" } });
     boxes.app = await wasmer.sandboxes.create({ packages: spec.app.packages, files: decode(args.files), env: spec.app.env, network: { mode: "host" } });
     if (spec.install) {

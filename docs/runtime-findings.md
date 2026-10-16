@@ -16,6 +16,7 @@ run any of them from the repo root with `node spikes/js/<name>.mjs`.
 | React + Vite 7 + esbuild-wasm / @rollup/wasm-node (c) | **FAIL**: Edge.js realm bugs break esbuild-wasm, even after patching | No |
 | Next.js 16 `next build` / `next dev` (d) | **FAIL**: Turbopack needs native; webpack build hangs; dev never serves a page | No |
 | Deps: host-installed vs in-guest install (e) | **PASS** both; host copy is ~3–5x faster | Host cache for certified starters, guest install otherwise |
+| Escape containment with Node permission model (f) | **PASS** for host files, processes and env; network and signals stay open | Required for every Edge.js stack |
 
 **Tier 1 the UI may offer today:** Node.js API/app (Express) on Edge.js, Node.js + PostgreSQL
 (Express + `pg` + pglite), and MCP servers on Edge.js. React + Vite (the requested tier 1) and
@@ -23,42 +24,98 @@ Next.js do **not** run in the local sandbox yet; they should go to Wasmer Edge (
 upstream fixes.
 
 > [!CAUTION]
-> **Edge.js under the Node SDK is not a security boundary.** Read [Security](#security-edgejs-is-not-isolated)
-> before relying on the "generated code never runs on the host" rule.
+> **Edge.js under the Node SDK does not isolate guest JavaScript from the host process.** Vessel contains
+> it with Node's permission model; read the [Security model](#security-model) for what that does and
+> does not cover.
 
-## Security: Edge.js is not isolated
+## Security model
+
+Decision (user, 2026-10-15): keep the Wasmer SDK runtime, harden it with per-project child processes,
+Node's permission model and a scrubbed environment, and document the limits honestly. This is a
+local hackathon demo, not a multi-tenant service.
+
+### The escape
 
 In `@wasmer/sdk` 0.19.1 on Node, Edge.js does not interpret JavaScript inside WebAssembly. Guest JS is
 `eval`'d by the **host's V8**, inside an SDK worker thread, behind a `Proxy` global
 (`wasmer_napi_compile_function` in the SDK's `wasmer-napi` snippet). Code compiled with `new Function`
-or indirect eval resolves globals against the real worker global instead:
+or indirect eval resolves globals against the real worker global instead, which hands the guest the
+host's `process`:
 
 ```js
-// inside `edge -e` in a sandbox
+// guest code, e.g. `edge -e` or any file in a generated project
 const p = new Function("return process")();
-p.pid;                                   // the host Node pid
-p.platform;                              // "win32"
-p.env.USERPROFILE;                       // host environment
-p.getBuiltinModule("fs").existsSync(…);  // true for host files
+p.getBuiltinModule("fs").readFileSync(".../.config/vessel/credentials.json");
 ```
 
-Observed: host pid, `win32`, host env, and host filesystem access via `process.getBuiltinModule("fs")`.
-That is a full escape: arbitrary host file access and process execution as the Vessel user. Dynamic
-`import()` from eval'd code also resolves through the host loader (`Cannot find module
+Dynamic `import()` from eval'd code also resolves through the host loader (`Cannot find module
 'C:\workspace\server.js' imported from …/@wasmer/sdk/pkg/snippets/…/inline0.js`). Non-JS packages
 (pglite, static-web-server, python) are real WASIX modules and are not affected.
 
-What `src/lib/sandbox.ts` does about it (defense in depth, **not** a fix):
+### Mitigations in `src/lib/sandbox.ts`
 
-- Each project's SDK client runs in its own forked Node process (`src/lib/sandbox-host.mjs`) with a
-  scrubbed environment (`SystemRoot`, `windir`, `TEMP`, `TMP`, `PATH` only). Escaped guest code
-  cannot read Vessel's in-memory secrets or provider keys from the server's env.
-- It still runs as the user, so it **can** read `~/.config/vessel/credentials.json` and anything else
-  the user can. Running the host as a separate low-privilege OS user, or in a container or VM, would
-  close that.
-- Real fixes: Wasmer making the Edge.js `Function`/eval path use the guest global, or running
-  Edge.js on the native Wasmer runtime instead of the JS SDK. The `wasmer` CLI is not installed on this
-  machine, so that is untested.
+1. **One child process per project** (`src/lib/sandbox-host.mjs`, forked by `forkHost`). Escaped code
+   lands in that process, never in the Next.js server, and a crash only takes down that project.
+2. **Node permission model** (`hostExecArgv`). Each flag was checked by dropping it in
+   `spikes/js/f-permission.mjs`:
+
+   | Flag | Why |
+   | --- | --- |
+   | `--experimental-wasm-jspi` | The SDK needs JSPI (Node 24) |
+   | `--permission` | Deny everything not listed below |
+   | `--allow-fs-read=<repo>/node_modules` | Load `@wasmer/sdk` and its dependency |
+   | `--allow-fs-read=<repo>/src/lib/sandbox-host.mjs` | The host script itself |
+   | `--allow-fs-read=~/.config/vessel/.wasmer` | Wasmer package cache, opened with `readOnly: true` |
+   | `--allow-worker` | **Required**: without it the SDK cannot start a guest (empty output) |
+   | not granted: `--allow-fs-write`, `--allow-child-process`, `--allow-addons`, `--allow-wasi`, `--allow-inspector` | Not needed: the workspace and deps arrive over IPC, not from disk |
+
+   Packages are downloaded by a separate, short-lived **warm host** that never runs guest code. It is
+   the only process with `--allow-fs-write` on the cache, so escaped guest code cannot poison cached
+   packages for other projects.
+3. **Scrubbed environment** (`hostEnv`): only `SystemRoot`, `windir`, `TEMP`, `TMP`, `PATH`. Windows
+   adds `USERNAME`, `USERPROFILE`, `HOMEDRIVE`, `HOMEPATH`, `LOGONSERVER`, `SYSTEMDRIVE` and
+   `USERDOMAIN` on its own; they are names and paths, not secrets. No API keys reach the host. Guest
+   apps get only `PORT`, `HOST`, `HOME`, `NODE_ENV` and `DATABASE_URL`.
+
+### Results (`node spikes/js/f-permission.mjs`, guest code using the escape above)
+
+| Probe from escaped guest code | Plain child, full env | Vessel host (`--permission`, scrubbed env) |
+| --- | --- | --- |
+| Host `process` reachable | yes (host pid, `win32`) | yes (host pid, `win32`) |
+| Host env | **everything**, including `GEMINI_API_KEY`, `DD_API_KEY`, `HF_TOKEN` and other API keys | only the scrubbed keys above |
+| Read `~/.config/vessel/credentials.json` | **readable** (3984 bytes) | `ERR_ACCESS_DENIED` |
+| List the home directory | **151 entries** | `ERR_ACCESS_DENIED` |
+| Write a file outside the workspace (`%TEMP%`) | **written** | `ERR_ACCESS_DENIED` (canary absent) |
+| `child_process.execFileSync("cmd.exe", …)` | **ran** | `ERR_ACCESS_DENIED` |
+| `process.binding("fs")` | **available** | `ERR_ACCESS_DENIED` |
+| Native addon (`process.dlopen`) | failed to load (DLL is not an addon) | `ERR_DLOPEN_DISABLED` |
+| `inspector.open()` | **opened** | `ERR_ACCESS_DENIED` |
+| `new Worker(…)` | spawned | spawned (same permissions as the host) |
+| Signal another process (`process.kill(ppid, 0)`) | **allowed** | **allowed** |
+| TCP connect to a host `127.0.0.1` listener | **connected** | **connected** |
+
+With the permission model, the escape **could not read or write host files or start processes** in
+these tests. The live test (`VESSEL_LIVE_SANDBOX=1`) passes with these flags: both starters, guest
+`pnpm install`, pglite, restart and reset.
+
+### What is still open
+
+- **Network is unrestricted.** Node's permission model does not cover sockets, and guests use
+  `network: host` anyway, even without escaping. Guest code can reach the internet, the LAN, and
+  services on `127.0.0.1`, **including Vessel's own API**. Vessel's `guardLocal` checks the `Origin`
+  header on writes, which a non-browser client can forge, so a guest could call POST routes, for
+  example to overwrite a stored provider key. GET routes return only public status, never keys.
+  Suggested follow-up: a per-launch token on Vessel's API.
+- **Signals.** Escaped code can `process.kill` any process the user owns, including the Vessel server.
+- **Resources.** No CPU, memory or disk limits per sandbox; a guest can exhaust the machine.
+- **The permission model is not a hardened boundary.** Node documents it as a seat belt for trusted
+  code, not a guarantee against malicious code, and it has had bypass CVEs. We found no bypass in these
+  probes, but that is not proof. For untrusted, multi-user or hosted use, run hosts in a container or VM,
+  or as a separate low-privilege OS user.
+- **Native Edge.js `--safe`** ("uses WebAssembly for sandboxing"): **not tested.** There is no Windows
+  build: the latest nightly (`0.2.5-v8-nightly`, 2026-10-03) ships `edge-darwin-arm64`,
+  `edge-linux-amd64` and `edge-wasix` only, and the installer is `curl -fsSL https://edgejs.org/install | bash`.
+  It could be compared under WSL with the user's approval to download and run the installer.
 
 ## Runtime facts that shaped the design
 
@@ -128,7 +185,7 @@ cache). Sandbox creation with Edge.js is ~1.4s every time; an Edge.js process st
   (`Scheduler is dead`).
 - **Vite 7.3.6** with pnpm overrides `rollup → @rollup/wasm-node@4.63.6` and
   `esbuild → esbuild-wasm@0.28.2`. Guest install 13.8–34.6s. esbuild-wasm fails in three layers, all
-  from the realm split described under Security:
+  from the realm split described in the Security model:
   1. `usage: go_js_wasm_exec [wasm binary] [arguments]`: code built by `new Function` sees a
      different `process.argv` (length 2) than the module (length 5).
   2. Patch 1 (pass `process` in) leads to `ReferenceError: Go is not defined`: `globalThis.Go` set by
