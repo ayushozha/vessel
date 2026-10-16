@@ -70,6 +70,14 @@ describe("proxy", () => {
     expect(proxy(req("/api/providers", { cookie: `${TOKEN_COOKIE}=stale` })).status).toBe(401);
   });
 
+  it("serves only the landing page without a token", () => {
+    expect(proxy(req("/")).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(req("/landing.html")).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(req("/onboarding")).status).toBe(401);
+    expect(proxy(req("/landing.html/../api/providers")).status).toBe(401);
+    expect(proxy(req("/api/projects")).status).toBe(401);
+  });
+
   it("locks everything if no token exists yet", async () => {
     await fs.rm(process.env.VESSEL_TOKEN_PATH!);
     expect(proxy(req("/api/providers", { authorization: "Bearer " })).status).toBe(401);

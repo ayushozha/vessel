@@ -9,6 +9,8 @@ main{max-width:34rem;padding:2rem}h1{font-weight:400;letter-spacing:-.03em;margi
 <main><h1>Open Vessel from your terminal.</h1><p>For your security, Vessel only accepts requests from the sign-in link it printed when it started:
 <code>http://127.0.0.1:3000/auth?token=…</code>. Restarting the server creates a new link.</p></main>`;
 
+const PUBLIC_PATHS = new Set(["/", "/landing.html"]);
+
 export function proxy(request: NextRequest) {
   const expected = readLaunchToken();
   const { pathname, searchParams } = request.nextUrl;
@@ -21,6 +23,9 @@ export function proxy(request: NextRequest) {
     res.cookies.set(TOKEN_COOKIE, given!, { httpOnly: true, sameSite: "lax", path: "/" });
     return res;
   }
+
+  // The landing page is static marketing with no data or API access, so anyone may see it.
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
 
   const cookie = request.cookies.get(TOKEN_COOKIE)?.value;
   const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
