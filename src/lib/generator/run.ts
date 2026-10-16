@@ -7,6 +7,7 @@ import { streamText, type ModelMessage } from "ai";
 import { memoryContext, remember, type NewMemory } from "../memory";
 import type { ResolvedModel } from "../models";
 import type { Project } from "../projects";
+import { addUsage, emptyUsage, priceUsage, type Pricing, type TokenUsage } from "../usage";
 import { deleteFile, listFiles, snapshot, writeFile } from "../workspace";
 import { emitWorkspaceChanged } from "../workspace-events";
 import { appendChat, appendRunEvent, readChat, type ChatMessage } from "./history";
@@ -35,6 +36,10 @@ export type RunEvent =
       firstTokenMs: number | null;
       /** Summed across every model call of the run. */
       outputTokens: number | null;
+      usage?: TokenUsage;
+      /** USD from genai-prices; null on a ChatGPT plan ("plan") or for a model it does not price ("unknown"). */
+      costUsd?: number | null;
+      pricing?: Pricing;
       error?: string;
       mode?: "single" | "parallel";
       planMs?: number | null;
@@ -141,6 +146,7 @@ type Run = {
   firstTokenMs: number | null;
   firstFileMs: number | null;
   outputTokens: number | null;
+  usage: TokenUsage;
   calls: number;
   mode: "single" | "parallel";
   planMs: number | null;
@@ -184,6 +190,7 @@ async function* callModel(run: Run, instructions: string, messages: ModelMessage
         yield part.text;
       } else if (part.type === "finish") {
         if (part.totalUsage.outputTokens !== undefined) run.outputTokens = (run.outputTokens ?? 0) + part.totalUsage.outputTokens;
+        addUsage(run.usage, part.totalUsage);
       } else if (part.type === "error") {
         run.error ??= errorMessage(part.error);
       }
@@ -364,6 +371,7 @@ export async function* runGeneration({
     firstTokenMs: null,
     firstFileMs: null,
     outputTokens: null,
+    usage: emptyUsage(),
     calls: 0,
     mode: "single",
     planMs: null,
@@ -391,6 +399,7 @@ export async function* runGeneration({
   // In the background: the reply should not wait on Provena. Failed runs keep only what the user said.
   const keep = status === "succeeded" ? run.memories : run.memories.filter((m) => m.authority === "human");
   if (keep.length || run.files.length) void remember(project.id, keep);
+  const { pricing, costUsd } = priceUsage(resolved.provider, resolved.modelId, run.usage);
   const end: RunEvent = {
     type: "run-end",
     runId,
@@ -399,6 +408,9 @@ export async function* runGeneration({
     durationMs: Date.now() - started,
     firstTokenMs: run.firstTokenMs,
     outputTokens: run.outputTokens,
+    usage: run.usage,
+    costUsd,
+    pricing,
     ...(run.error ? { error: run.error } : {}),
     mode: run.mode,
     planMs: run.planMs,
@@ -419,6 +431,9 @@ export async function* runGeneration({
       durationMs: end.durationMs,
       firstTokenMs: run.firstTokenMs,
       outputTokens: run.outputTokens,
+      usage: run.usage,
+      costUsd,
+      pricing,
       model: resolved.modelId,
       mode: run.mode,
       planMs: run.planMs,
