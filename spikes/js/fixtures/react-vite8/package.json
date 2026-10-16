@@ -1,8 +1,0 @@
-{
-  "name": "spike-react-vite",
-  "private": true,
-  "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build" },
-  "dependencies": { "react": "19.2.8", "react-dom": "19.2.8" },
-  "devDependencies": { "@vitejs/plugin-react": "6.1.1", "vite": "8.3.2" }
-}

@@ -176,7 +176,8 @@ cache). Sandbox creation with Edge.js is ~1.4s every time; an Edge.js process st
 
 ### (c) React + Vite: FAIL
 
-`VITE=8 node spikes/js/c-react-vite.mjs` / `VITE=7 node spikes/js/c-react-vite.mjs`.
+`VITE=8 node spikes/js/c-react-vite.mjs` / `VITE=7 node spikes/js/c-react-vite.mjs` (scripts and fixtures in
+[ayushozha/vessel#6](https://github.com/ayushozha/vessel/pull/6), split out for size).
 
 - **Vite 8.3.2** (rolldown + lightningcss). Guest install 8.2s. Rolldown detects a WebContainer and
   downloads `@rolldown/binding-wasm32-wasi@1.2.14` by itself, then fails:
@@ -190,7 +191,7 @@ cache). Sandbox creation with Edge.js is ~1.4s every time; an Edge.js process st
      different `process.argv` (length 2) than the module (length 5).
   2. Patch 1 (pass `process` in) leads to `ReferenceError: Go is not defined`: `globalThis.Go` set by
      `wasm_exec.js` is invisible in the `new Function` global.
-  3. Patch 2 ([`patches/esbuild-wasm@0.28.2.patch`](../spikes/js/fixtures/react-vite7/patches/esbuild-wasm@0.28.2.patch),
+  3. Patch 2 (`spikes/js/fixtures/react-vite7/patches/esbuild-wasm@0.28.2.patch` in #6,
      compile the Go loader as a real CommonJS module) leads to `TypeError: The "list" argument must be an
      instance of SharedArrayBuffer, ArrayBuffer or ArrayBufferView`, raised from inside the Go wasm's
      `fs` calls (even `esbuild --version`). The bytes come from the host realm and fail Edge.js's
@@ -201,7 +202,7 @@ cache). Sandbox creation with Edge.js is ~1.4s every time; an Edge.js process st
 
 ### (d) Next.js 16.3.8: FAIL
 
-`node spikes/js/d-next.mjs` (`SKIP_BUILD=1` for dev only). Guest install 28–32s; native SWC is
+`node spikes/js/d-next.mjs` (`SKIP_BUILD=1` for dev only; in #6). Guest install 28–32s; native SWC is
 absent, and Next loads `@next/swc-wasm-nodejs` automatically.
 
 - Default (Turbopack): `Turbopack is not supported on this platform (wasi/wasm32) because native
