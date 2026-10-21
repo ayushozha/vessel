@@ -1,5 +1,5 @@
 // Token usage and cost per run. Prices come from pydantic's genai-prices dataset (bundled with the package, so it
-// works offline); Vessel keeps no price table of its own. A model the dataset does not know gets tokens but no cost,
+// works offline); Adorable keeps no price table of its own. A model the dataset does not know gets tokens but no cost,
 // and ChatGPT plan runs are billed to the plan, not per token, so they never show a price.
 import { calcPrice } from "@pydantic/genai-prices";
 import type { LanguageModelUsage } from "ai";

@@ -5,7 +5,7 @@ import { getActiveModel } from "@/lib/readiness";
 
 import { NewProject } from "./new-project";
 
-export const metadata = { title: "What are you building? · Vessel" };
+export const metadata = { title: "What are you building? · Adorable" };
 
 export default async function NewProjectPage() {
   await connection(); // reads local credentials on every request

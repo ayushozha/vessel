@@ -1,6 +1,6 @@
 // Per-project sandbox host. Forked by src/lib/sandbox.ts as a plain Node child (never bundled by Next).
 // It owns one Wasmer client so an SDK worker failure, or guest code escaping Edge.js (see
-// docs/runtime-findings.md), lands in this process with its scrubbed environment, not in the Vessel server.
+// docs/runtime-findings.md), lands in this process with its scrubbed environment, not in the Adorable server.
 // Protocol (process IPC): parent sends { id, op, ...args }; child replies { id, ok, error? } and emits
 // { log: { source, stream, line } } and { exit: { source, code, reason } }.
 import { Wasmer } from "@wasmer/sdk/node";

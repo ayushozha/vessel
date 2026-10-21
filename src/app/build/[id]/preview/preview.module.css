@@ -23,10 +23,10 @@
 }
 .icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 .icon:hover:not(:disabled) { border-color: var(--ink); }
-.icon:disabled { color: #c4c4cb; cursor: not-allowed; }
+.icon:disabled { color: #b89aa6; cursor: not-allowed; }
 .divider { width: 1px; height: 20px; background: var(--hair); margin: 0 4px; }
 .zoom { font: 500 11px var(--font-mono), monospace; border: 1px solid var(--hair); border-radius: 9px; height: 32px; padding: 0 8px; background: var(--paper); color: var(--ink); }
-.zoom:disabled { color: #c4c4cb; }
+.zoom:disabled { color: #b89aa6; }
 .confirm { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono), monospace; color: var(--s1); padding-left: 4px; }
 .confirm button { font: inherit; border: 1px solid var(--hair); border-radius: 999px; background: var(--paper); padding: 5px 9px; cursor: pointer; }
 .confirm button:first-of-type { background: var(--s1); color: #fff; border-color: var(--s1); }
@@ -43,8 +43,8 @@
 /* stage */
 .stage {
   position: relative; min-height: 0; overflow: auto; border-radius: 12px; display: grid; place-items: center;
-  background-color: #eeeef1;
-  background-image: radial-gradient(circle at 1px 1px, #d7d7dd 1px, transparent 0);
+  background-color: #fbeff3;
+  background-image: radial-gradient(circle at 1px 1px, #efd3de 1px, transparent 0);
   background-size: 16px 16px;
 }
 .stage[data-responsive="true"] { display: block; background: none; }
@@ -54,11 +54,11 @@
 .frame { position: absolute; top: 0; left: 0; transform-origin: 0 0; background: var(--paper); display: flex; flex-direction: column; align-items: center; transition: width 0.25s ease, height 0.25s ease; }
 .stage[data-responsive="true"] .frame { position: static; border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
 
-.frame[data-kind="desktop"] { border: 1px solid var(--ink); border-radius: 10px; overflow: hidden; box-shadow: 0 30px 70px -40px rgba(10, 10, 11, 0.45); }
+.frame[data-kind="desktop"] { border: 1px solid var(--hair); border-radius: 10px; overflow: hidden; box-shadow: 0 30px 70px -40px rgba(52, 16, 41, 0.45); }
 .windowBar { flex: none; width: 100%; height: 28px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--hair); background: var(--wash); font: 500 10.5px var(--font-mono), monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); }
-.frame[data-kind="tablet"] { padding: 28px; border-radius: 34px; background: #0a0a0b; box-shadow: 0 30px 70px -35px rgba(10, 10, 11, 0.55); }
-.frame[data-kind="phone"] { padding: 24px; border-radius: 52px; background: #0a0a0b; box-shadow: 0 30px 70px -35px rgba(10, 10, 11, 0.55); }
-.notch { position: absolute; top: 34px; left: 50%; width: 108px; height: 30px; margin-left: -54px; border-radius: 999px; background: #0a0a0b; z-index: 2; }
+.frame[data-kind="tablet"] { padding: 28px; border-radius: 34px; background: var(--panel); box-shadow: 0 30px 70px -35px rgba(52, 16, 41, 0.55); }
+.frame[data-kind="phone"] { padding: 24px; border-radius: 52px; background: var(--panel); box-shadow: 0 30px 70px -35px rgba(52, 16, 41, 0.55); }
+.notch { position: absolute; top: 34px; left: 50%; width: 108px; height: 30px; margin-left: -54px; border-radius: 999px; background: var(--panel); z-index: 2; }
 
 .frame[data-landscape="true"] .notch { top: 50%; left: 34px; width: 30px; height: 108px; margin: -54px 0 0 0; }
 .screen { position: relative; flex: none; background: var(--paper); overflow: hidden; }
@@ -69,7 +69,7 @@
 @keyframes load { 0% { transform: scaleX(0); } 60% { transform: scaleX(0.8); } 100% { transform: scaleX(1); opacity: 0; } }
 
 .empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 8px; padding: 24px; }
-.empty strong { font-weight: 400; font-size: 20px; letter-spacing: -0.03em; }
+.empty strong { font-weight: 600; font-size: 20px; letter-spacing: -0.03em; }
 .empty p { margin: 0; font-size: 13.5px; color: var(--mute); max-width: 36ch; justify-self: center; }
 
 .status { display: flex; justify-content: space-between; font: 500 10.5px var(--font-mono), monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); }

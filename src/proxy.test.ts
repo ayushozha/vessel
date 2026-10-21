@@ -43,7 +43,7 @@ describe("proxy", () => {
   it("blocks pages and API calls without the token", async () => {
     const page = proxy(req("/onboarding"));
     expect(page.status).toBe(401);
-    expect(await page.text()).toContain("Open Vessel from your terminal");
+    expect(await page.text()).toContain("Open Adorable from your terminal");
     const api = proxy(req("/api/providers"));
     expect(api.status).toBe(401);
     expect((await api.json()).error).toMatch(/sign-in link/);

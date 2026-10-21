@@ -1,5 +1,5 @@
 // Install Provena (github.com/ayushozha/provena), the memory engine behind the builder's Memory tab, into
-// Vessel's toolchains folder: clone a pinned commit, install the CLI's locked dependencies and build it.
+// Adorable's toolchains folder: clone a pinned commit, install the CLI's locked dependencies and build it.
 // Usage: pnpm setup:provena   (re-running updates the checkout to the pinned commit)
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";

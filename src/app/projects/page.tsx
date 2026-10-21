@@ -6,7 +6,7 @@ import { getActiveModel } from "@/lib/readiness";
 
 import { ProjectsHome } from "./projects-home";
 
-export const metadata = { title: "Projects · Vessel" };
+export const metadata = { title: "Projects · Adorable" };
 
 export default async function ProjectsPage() {
   await connection(); // reads local files on every request

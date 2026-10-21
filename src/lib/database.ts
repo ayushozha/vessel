@@ -27,7 +27,7 @@ export const forkDbHost: ForkDbHost = () => {
   const hostScript = path.join(process.cwd(), "src", "lib", "db-host.mjs");
   return fork(/*turbopackIgnore: true*/ hostScript, [], {
     // No --permission here: PGlite needs process.binding, which the permission model blocks outright. This host
-    // only runs Vessel's own code (generated code never executes here; apps send SQL over TCP), in its own
+    // only runs Adorable's own code (generated code never executes here; apps send SQL over TCP), in its own
     // process with a scrubbed environment. See docs/runtime-findings.md, "Security model".
     env: { PATH: process.env.PATH ?? "", SystemRoot: process.env.SystemRoot ?? "", TEMP: process.env.TEMP ?? "", TMP: process.env.TMP ?? "" } as unknown as NodeJS.ProcessEnv,
     cwd: process.cwd(),

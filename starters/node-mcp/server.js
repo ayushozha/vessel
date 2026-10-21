@@ -1,5 +1,5 @@
-// Vessel starter: an MCP server (Streamable HTTP, stateless) on Edge.js in a Wasmer sandbox.
-// Vessel sets PORT and HOST. Clients connect to http://127.0.0.1:$PORT/mcp.
+// Adorable starter: an MCP server (Streamable HTTP, stateless) on Edge.js in a Wasmer sandbox.
+// Adorable sets PORT and HOST. Clients connect to http://127.0.0.1:$PORT/mcp.
 // CommonJS on purpose: under wasmer/edgejs 0.2.5 the ESM entry of zod/v3 (which the MCP SDK imports)
 // fails with "reading 'arrayToEnum'", while the CommonJS builds load fine.
 /* eslint-disable @typescript-eslint/no-require-imports */

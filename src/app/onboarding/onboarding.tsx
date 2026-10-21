@@ -68,7 +68,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
   return (
     <main className={styles.page}>
       <header className={styles.mark}>
-        <b>Vessel</b>
+        <b>Adorable</b>
         <span>Step 1 · Connect a model</span>
       </header>
 
@@ -77,7 +77,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
           <h1 className={styles.title}>
             Bring your own <span className={styles.u}>intelligence.</span>
           </h1>
-          <p className={styles.sub}>Pick where Vessel’s coding agent gets its model. Keys stay on this machine.</p>
+          <p className={styles.sub}>Pick where Adorable’s coding agent gets its model. Keys stay on this machine.</p>
           {resultMessage && (
             <p className={chatgptResult === "connected" ? styles.ok : styles.err} role="status">
               {resultMessage}
@@ -284,7 +284,7 @@ function KeyPanel({ status, onChange }: { status: KeyStatus; onChange: () => voi
       <button type="submit" className={styles.btn} disabled={busy || apiKey.trim().length < 8}>
         {busy ? "Checking key…" : "Connect"}
       </button>
-      <p className={styles.muted}>We check the key against the provider’s model list, then store it in your local Vessel credentials file.</p>
+      <p className={styles.muted}>We check the key against the provider’s model list, then store it in your local Adorable credentials file.</p>
     </form>
   );
 }
@@ -311,7 +311,7 @@ function ChatgptPanel({ status, onChange }: { status: Status; onChange: () => vo
         </>
       ) : chatgpt.localMode.enabled ? (
         <>
-          <p className={styles.muted}>Sign in and allow Vessel to use your ChatGPT plan for coding. Your conversations are not shared.</p>
+          <p className={styles.muted}>Sign in and allow Adorable to use your ChatGPT plan for coding. Your conversations are not shared.</p>
           <a className={`${styles.btn} ${styles.chatgpt}`} href="/api/chatgpt/start">
             Continue with ChatGPT
           </a>
@@ -320,7 +320,7 @@ function ChatgptPanel({ status, onChange }: { status: Status; onChange: () => vo
         <p className={styles.note}>{chatgpt.localMode.reason}</p>
       )}
       <p className={styles.muted}>
-        Uses OpenAI’s documented flow for locally run apps. A hosted version of Vessel needs OpenAI’s approval first.
+        Uses OpenAI’s documented flow for locally run apps. A hosted version of Adorable needs OpenAI’s approval first.
       </p>
     </div>
   );

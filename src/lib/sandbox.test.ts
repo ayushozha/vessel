@@ -126,7 +126,7 @@ describe("depsKey", () => {
 });
 
 describe("planSandbox", () => {
-  it("only uses pinned packages and Vessel-chosen env", () => {
+  it("only uses pinned packages and Adorable-chosen env", () => {
     const spec = planSandbox("node-pglite", { port: 4100, cacheDir: "/c", hasDeps: true, needsInstall: true, dbPort: 5500 });
     expect(spec.app.packages).toEqual([PACKAGES.edge]);
     expect(spec.db).toBeUndefined(); // the database runs outside the sandbox (src/lib/database.ts)
@@ -201,7 +201,7 @@ describe("SandboxPool", () => {
     const pool = new SandboxPool(host.forkFn, ports, db.provider);
     const sb = await pool.start(ID, "node-pglite");
     expect(sb.state).toBe("running");
-    expect(sb.appUrl).toBe("http://localhost:4321/"); // never Vessel's own host: cookies ignore ports
+    expect(sb.appUrl).toBe("http://localhost:4321/"); // never Adorable's own host: cookies ignore ports
     const start = host.sent[0];
     expect(Object.keys(start.files ?? {}).sort()).toEqual(["/workspace/package.json", "/workspace/server.js"]);
     expect(start.spec?.install).toBeDefined(); // nothing in the deps cache, so the guest installs

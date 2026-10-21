@@ -3,10 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { readLaunchToken, TOKEN_COOKIE, tokenMatches } from "@/lib/launch-token";
 
-const LOCKED_HTML = `<!doctype html><meta charset="utf-8"><title>Vessel is locked</title>
+const LOCKED_HTML = `<!doctype html><meta charset="utf-8"><title>Adorable is locked</title>
 <style>body{font:16px/1.5 system-ui,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;background:#fff;color:#0a0a0b}
 main{max-width:34rem;padding:2rem}h1{font-weight:400;letter-spacing:-.03em;margin:0 0 .5rem}code{background:#f7f7f9;padding:.1em .35em;border-radius:4px}</style>
-<main><h1>Open Vessel from your terminal.</h1><p>For your security, Vessel only accepts requests from the sign-in link it printed when it started:
+<main><h1>Open Adorable from your terminal.</h1><p>For your security, Adorable only accepts requests from the sign-in link it printed when it started:
 <code>http://127.0.0.1:3000/auth?token=…</code>. Restarting the server creates a new link.</p></main>`;
 
 const PUBLIC_PATHS = new Set(["/", "/landing.html"]);
@@ -35,7 +35,7 @@ export function proxy(request: NextRequest) {
 
 function locked(pathname: string) {
   return pathname.startsWith("/api/")
-    ? NextResponse.json({ error: "Open Vessel from the sign-in link printed in the terminal." }, { status: 401 })
+    ? NextResponse.json({ error: "Open Adorable from the sign-in link printed in the terminal." }, { status: 401 })
     : new NextResponse(LOCKED_HTML, { status: 401, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 

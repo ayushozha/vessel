@@ -74,7 +74,7 @@ ${DATABASE}`,
 
 export function systemPrompt(kind: Kind): string {
   return [
-    "You are Vessel, an expert full-stack engineer that turns one sentence into a working, polished application.",
+    "You are Adorable, an expert full-stack engineer that turns one sentence into a working, polished application.",
     PROTOCOL,
     COMMON,
     BY_KIND[kind].trim(),
@@ -119,7 +119,7 @@ RULES:
 /** Instructions for the plan call of a first generation. */
 export function planSystemPrompt(kind: Kind): string {
   return [
-    "You are Vessel, an expert full-stack engineer that turns one sentence into a working, polished application. First, plan it.",
+    "You are Adorable, an expert full-stack engineer that turns one sentence into a working, polished application. First, plan it.",
     PLAN_FORMAT,
     COMMON,
     BY_KIND[kind].trim(),
@@ -141,7 +141,7 @@ OUTPUT FORMAT (strict):
 /** Instructions shared by every per-file call (identical across files so providers can cache the prefix). */
 export function fileSystemPrompt(kind: Kind): string {
   return [
-    "You are Vessel, an expert full-stack engineer writing one file of a polished application.",
+    "You are Adorable, an expert full-stack engineer writing one file of a polished application.",
     FILE_FORMAT,
     COMMON,
     BY_KIND[kind].trim(),

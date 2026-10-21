@@ -1,4 +1,4 @@
-// What Vessel can build. Shared by the server and the UI, so it holds no secrets.
+// What Adorable can build. Shared by the server and the UI, so it holds no secrets.
 
 export const KINDS = {
   app: {
@@ -33,7 +33,7 @@ export const KINDS = {
   },
   anything: {
     name: "Anything",
-    tagline: "Describe it. Vessel picks the stack.",
+    tagline: "Describe it. Adorable picks the stack.",
     produces: "Detected stack · Anybuild",
     resources: ["Decided by the plan"],
     checks: ["Build", "Start command runs", "Live URL returns 200"],

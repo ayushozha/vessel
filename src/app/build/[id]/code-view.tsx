@@ -19,7 +19,7 @@ async function api<T = object>(url: string, init?: RequestInit): Promise<Reply<T
     const res = await fetch(url, { cache: "no-store", ...init });
     return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
   } catch {
-    return { ok: false, status: 0, body: { error: "Vessel is not reachable." } as Reply<T>["body"] };
+    return { ok: false, status: 0, body: { error: "Adorable is not reachable." } as Reply<T>["body"] };
   }
 }
 
