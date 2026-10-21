@@ -41,7 +41,7 @@ export function validatePath(raw: string): { ok: true; path: string } | { ok: fa
   if (parts.length > LIMITS.depth) return { ok: false, reason: "path too deep" };
   for (const part of parts) {
     if (part === "." || part === "..") return { ok: false, reason: "path escapes the workspace" };
-    if (BLOCKED_SEGMENTS.has(part)) return { ok: false, reason: `${part} is managed by Vessel` };
+    if (BLOCKED_SEGMENTS.has(part)) return { ok: false, reason: `${part} is managed by Adorable` };
     const allowedDotfile = /^\.(gitignore|env\.example|npmrc|nvmrc|prettierrc)$/.test(part);
     if (!allowedDotfile && !SEGMENT.test(part)) return { ok: false, reason: "unsupported characters in path" };
   }

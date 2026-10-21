@@ -1,7 +1,7 @@
 // Per-launch access token. A fresh token is written at server start (src/instrumentation.ts) to an owner-only
 // file and printed to the terminal as a sign-in link. src/proxy.ts requires it, as a cookie or Bearer header,
 // on every page and API request. Code running in project sandboxes cannot read the file (no host file access),
-// so it cannot call Vessel's API even though it shares the machine's network.
+// so it cannot call Adorable's API even though it shares the machine's network.
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";

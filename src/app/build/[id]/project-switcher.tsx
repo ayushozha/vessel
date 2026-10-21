@@ -42,7 +42,7 @@ export function ProjectSwitcher({ id, name: initial }: { id: string; name: strin
     if (!res.ok) return setError(body.error ?? "Could not rename.");
     setError(null);
     setName(body.name);
-    document.title = `${body.name} · Vessel`;
+    document.title = `${body.name} · Adorable`;
   }
 
   if (editing) return <RenameField initial={name} onDone={rename} className={styles.nameInput} />;

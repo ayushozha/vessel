@@ -1,5 +1,5 @@
 // Local sandbox runtime. Server-only. Generated projects run in Wasmer SDK sandboxes, one forked host
-// process per project (src/lib/sandbox-host.mjs). Vessel alone decides packages, env and which host
+// process per project (src/lib/sandbox-host.mjs). Adorable alone decides packages, env and which host
 // files enter a sandbox; generated code never chooses them. See docs/runtime-findings.md for limits.
 import { fork, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -100,7 +100,7 @@ export interface SandboxSpec {
   install?: { command: string; args: string[]; timeoutMs: number };
 }
 
-/** Everything a sandbox may run, decided by Vessel from the stack alone. */
+/** Everything a sandbox may run, decided by Adorable from the stack alone. */
 export function planSandbox(
   stack: StackId,
   opts: { port: number; cacheDir: string; hasDeps: boolean; needsInstall: boolean; dbPort?: number },
@@ -219,7 +219,7 @@ export class ProjectSandbox extends EventEmitter {
 
   /**
    * The preview URL. Deliberately `localhost`, not 127.0.0.1: browsers send cookies regardless of port, so
-   * serving the untrusted app from Vessel's own host (127.0.0.1) would hand it Vessel's session cookie.
+   * serving the untrusted app from Adorable's own host (127.0.0.1) would hand it Adorable's session cookie.
    */
   get appUrl() {
     return `http://localhost:${this.port}/`;

@@ -1,5 +1,5 @@
-// Vessel starter: Express + PostgreSQL, running on Edge.js with wasmer/pglite in a Wasmer sandbox.
-// Vessel sets PORT, HOST and DATABASE_URL. Keep HOST: listeners bind the same address on the host.
+// Adorable starter: Express + PostgreSQL, running on Edge.js with wasmer/pglite in a Wasmer sandbox.
+// Adorable sets PORT, HOST and DATABASE_URL. Keep HOST: listeners bind the same address on the host.
 import express from "express";
 import pg from "pg";
 

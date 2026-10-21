@@ -24,7 +24,7 @@ Next.js do **not** run in the local sandbox yet; they should go to Wasmer Edge (
 upstream fixes.
 
 > [!CAUTION]
-> **Edge.js under the Node SDK does not isolate guest JavaScript from the host process.** Vessel contains
+> **Edge.js under the Node SDK does not isolate guest JavaScript from the host process.** Adorable contains
 > it with Node's permission model; read the [Security model](#security-model) for what that does and
 > does not cover.
 
@@ -79,7 +79,7 @@ Dynamic `import()` from eval'd code also resolves through the host loader (`Cann
 
 ### Results (`node spikes/js/f-permission.mjs`, guest code using the escape above)
 
-| Probe from escaped guest code | Plain child, full env | Vessel host (`--permission`, scrubbed env) |
+| Probe from escaped guest code | Plain child, full env | Adorable host (`--permission`, scrubbed env) |
 | --- | --- | --- |
 | Host `process` reachable | yes (host pid, `win32`) | yes (host pid, `win32`) |
 | Host env | **everything**, including `GEMINI_API_KEY`, `DD_API_KEY`, `HF_TOKEN` and other API keys | only the scrubbed keys above |
@@ -102,11 +102,11 @@ these tests. The live test (`VESSEL_LIVE_SANDBOX=1`) passes with these flags: bo
 
 - **Network is unrestricted.** Node's permission model does not cover sockets, and guests use
   `network: host` anyway, even without escaping. Guest code can reach the internet, the LAN, and
-  services on `127.0.0.1`, **including Vessel's own API**. Vessel's `guardLocal` checks the `Origin`
+  services on `127.0.0.1`, **including Adorable's own API**. Adorable's `guardLocal` checks the `Origin`
   header on writes, which a non-browser client can forge, so a guest could call POST routes, for
   example to overwrite a stored provider key. GET routes return only public status, never keys.
-  Suggested follow-up: a per-launch token on Vessel's API.
-- **Signals.** Escaped code can `process.kill` any process the user owns, including the Vessel server.
+  Suggested follow-up: a per-launch token on Adorable's API.
+- **Signals.** Escaped code can `process.kill` any process the user owns, including the Adorable server.
 - **Resources.** No CPU, memory or disk limits per sandbox; a guest can exhaust the machine.
 - **The permission model is not a hardened boundary.** Node documents it as a seat belt for trusted
   code, not a guarantee against malicious code, and it has had bypass CVEs. We found no bypass in these
@@ -137,10 +137,10 @@ runs in its Wasmer sandbox and connects with a normal `pg` client (`DATABASE_URL
 | Reset data | stops the app, deletes `pgdata`, boots again on a fresh database |
 | Offline | yes: nothing leaves the machine |
 
-PGlite serves one connection at a time, so Vessel sets `DB_POOL_MAX=1` and the generator sizes pools from it.
+PGlite serves one connection at a time, so Adorable sets `DB_POOL_MAX=1` and the generator sizes pools from it.
 
 **Security:** the database host runs **without** Node's permission model, because PGlite needs `process.binding`,
-which the permission model blocks with no opt-out. It runs only Vessel's code (generated code never executes
+which the permission model blocks with no opt-out. It runs only Adorable's code (generated code never executes
 there; apps send SQL over TCP), in its own process with a scrubbed environment (no API keys). A guest that
 escapes Edge.js can reach it over TCP like any other local port (see "Network is unrestricted" above).
 
@@ -151,14 +151,14 @@ escapes Edge.js can reach it over TCP like any other local port (see "Network is
 | The SDK needs WebAssembly JSPI; Node 24 (V8 13.6) has it behind a flag | `panicked … the JavaScript host does not support WebAssembly JSPI` | Host is forked with `execArgv: ["--experimental-wasm-jspi"]` |
 | Node rejects that flag in `NODE_OPTIONS` | `--experimental-wasm-jspi is not allowed in NODE_OPTIONS` | Spikes call `v8.setFlagsFromString` before the SDK starts workers (works) |
 | No host mounts in `SandboxOptions` on Node | `dist/index.js#createSandbox` only takes `packages`, `files`, `env`, `network` | Workspace and deps are **copied** in via `files`/`sandbox.fs`, never mounted; guests cannot reach host paths through WASIX |
-| `sandbox.fs` only accepts paths under `/workspace` | `invalid guest path '/': sandbox filesystem paths must be inside '/workspace'` | All Vessel paths are `/workspace/<relative>` |
-| Guest TCP listeners bind the **same host address and port** | `node-network.js#listenTcp` calls `net.createServer().listen({host, port})` | Vessel picks a free port and sets `HOST=127.0.0.1`; a guest that binds `0.0.0.0` is reachable from the LAN |
+| `sandbox.fs` only accepts paths under `/workspace` | `invalid guest path '/': sandbox filesystem paths must be inside '/workspace'` | All Adorable paths are `/workspace/<relative>` |
+| Guest TCP listeners bind the **same host address and port** | `node-network.js#listenTcp` calls `net.createServer().listen({host, port})` | Adorable picks a free port and sets `HOST=127.0.0.1`; a guest that binds `0.0.0.0` is reachable from the LAN |
 | pglite always listens on 5432, ignoring `PGPORT`, `-p`, `-c` | `FATAL: pglite: invalid command-line argument: -p` | One PostgreSQL project at a time per machine (pool enforces it) |
 | pglite serves one connection, then exits when it closes | spike (b): `pglite after client disconnect: exited 0/exited` | Apps must use one long-lived `pg.Client`, not a `Pool`; restart respawns the DB first |
 | pglite data is per process | spike (b): 2 rows before respawn, 0 after, in the same sandbox | Restart = fresh database; `resetData()` = restart; starters create schema idempotently |
 | An uncaught guest-side error can kill the **whole** Wasmer client | `WORKER_FAILED … Scheduler is dead` after rolldown/esbuild/Next errors | One client per project, in its own process; the pool marks the project `crashed` |
 | `process.exit` from escaped code exits the SDK worker | `Wasmer SDK worker exited unexpectedly with status 1` | Same isolation as above |
-| `os.homedir()` throws without `HOME` | `uv_os_homedir returned ENOENT` | Vessel sets `HOME=/workspace` |
+| `os.homedir()` throws without `HOME` | `uv_os_homedir returned ENOENT` | Adorable sets `HOME=/workspace` |
 | `fs.watch` is `ENOSYS` | `Watchpack Error (watcher): Error: ENOSYS … watch '/workspace'` | Dev servers need polling (`WATCHPACK_POLLING=true`, `CHOKIDAR_USEPOLLING`) |
 | `spawnSync` of the runtime produced no output; async `spawn` works | spike probe | Prefer async child processes in generated code |
 
@@ -251,7 +251,7 @@ absent, and Next loads `@next/swc-wasm-nodejs` automatically.
 | `pnpm install --ignore-scripts` inside the guest (in-memory fs, nothing cached) | 10.70s | 10.89s |
 
 "Mounted read-only" is not possible with this SDK (no mounts), so host deps are copied. The pool
-uses the host path only for exact dependency sets prepared by Vessel
+uses the host path only for exact dependency sets prepared by Adorable
 (`node scripts/warm-deps.mjs`: certified starters, npm with scripts disabled, so no package code runs on
 the host). Anything else installs inside the guest.
 
@@ -272,7 +272,7 @@ Next server (sandbox.ts)                      forked host per project (sandbox-h
   changes need `restart()`.
 - `restart()` maps to PR #3's `onRestart`. `resetData()` maps to `onResetData` (`node-pglite` only;
   same effect as restart today). `appUrl` maps to `appUrl`.
-- Only Vessel picks packages (exact pins), commands, env (`PORT`, `HOST=127.0.0.1`, `HOME`, `NODE_ENV`,
+- Only Adorable picks packages (exact pins), commands, env (`PORT`, `HOST=127.0.0.1`, `HOME`, `NODE_ENV`,
   `DATABASE_URL`), and which host files are read: the project workspace
   `~/.config/vessel/projects/<id>/workspace` and the deps cache `~/.config/vessel/deps/<key>`, both
   checked with `realpath` containment and size limits, regular files only.

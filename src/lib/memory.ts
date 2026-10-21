@@ -31,7 +31,7 @@ export const provenaCli = () =>
 export const memoryAvailable = () => existsSync(/*turbopackIgnore: true*/ provenaCli());
 const userBrainDir = () => path.join(vesselHome(), "brain");
 
-// Only what git and Node need: Provena never sees provider keys or other secrets from Vessel's environment.
+// Only what git and Node need: Provena never sees provider keys or other secrets from Adorable's environment.
 function cliEnv(): NodeJS.ProcessEnv {
   const keep = ["PATH", "Path", "SystemRoot", "TEMP", "TMP", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"];
   return Object.fromEntries(keep.filter((k) => process.env[k]).map((k) => [k, process.env[k]])) as NodeJS.ProcessEnv;

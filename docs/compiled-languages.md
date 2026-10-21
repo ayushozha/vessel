@@ -1,6 +1,6 @@
 # Compiled backend languages in local Wasmer sandboxes
 
-Findings from `spikes/compiled/`: which compiled backend languages Vessel can
+Findings from `spikes/compiled/`: which compiled backend languages Adorable can
 honestly run inside a local Wasmer sandbox and serve over HTTP on this Windows
 machine, and which ones the UI should offer.
 
@@ -54,7 +54,7 @@ with `wasmer.packages.load(bytes)` (or built in the sandbox and passed to
 the host with the **same address**: a guest bind on `0.0.0.0` showed up in
 `netstat` as `0.0.0.0:PORT LISTENING`, which is reachable from the LAN. Every
 starter therefore binds `127.0.0.1` (confirmed as `127.0.0.1:PORT LISTENING`),
-and Vessel must enforce loopback for generated code, not just suggest it.
+and Adorable must enforce loopback for generated code, not just suggest it.
 
 ### C: PASS, compiled inside the sandbox
 
@@ -174,7 +174,7 @@ small, STL-free and shallow, which is a poor fit for LLM-written C++.
   `wasi_snapshot_preview1` / `wasix_32v1` syscalls. Unlike Edge.js guests (see
   `docs/runtime-findings.md` in PR #5), they have no path to host JS.
 
-## What Vessel should offer
+## What Adorable should offer
 
 1. **C** as the headline: the code is compiled *and* run inside Wasmer with
    no host toolchain. Keep generated code shallow (see the C++ limits).

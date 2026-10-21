@@ -1,4 +1,4 @@
-// Pre-install certified starter dependencies into Vessel's shared deps cache so sandboxes boot without a
+// Pre-install certified starter dependencies into Adorable's shared deps cache so sandboxes boot without a
 // guest `pnpm install` (about 2-4s instead of ~11s; see docs/runtime-findings.md). Usage:
 //   node scripts/warm-deps.mjs [starters/<name> ...]   (defaults to every starter)
 // Install scripts are disabled: npm only downloads and unpacks; no package code runs on the host.

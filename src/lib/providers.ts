@@ -1,4 +1,4 @@
-// Model providers. Vessel is model-agnostic: model lists always come from the provider's own API.
+// Model providers. Adorable is model-agnostic: model lists always come from the provider's own API.
 
 export const KEY_PROVIDERS = {
   openai: { label: "OpenAI" },

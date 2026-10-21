@@ -10,7 +10,7 @@ export const RESOURCE = "https://api.openai.com/v1";
 export const SCOPES = "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct";
 export const REQUIRED_SCOPE = "chatgpt.tokens.use.direct";
 export const DYNAMIC_CLIENT_ID = "dynamic_agent_client";
-export const AGENT_NAME = "Vessel";
+export const AGENT_NAME = "Adorable";
 const TX_TTL_MS = 10 * 60_000;
 
 /** Local mode is opt-in and only works on 127.0.0.1, which OpenAI requires for the loopback callback. */
@@ -18,7 +18,7 @@ export function localModeError(requestUrl: string): string | null {
   if (process.env.CHATGPT_LOCAL_MODE !== "true")
     return "ChatGPT local mode is off. Set CHATGPT_LOCAL_MODE=true in .env.local and restart.";
   if (new URL(requestUrl).hostname !== "127.0.0.1")
-    return "Open Vessel at http://127.0.0.1:3000. OpenAI only redirects back to 127.0.0.1.";
+    return "Open Adorable at http://127.0.0.1:3000. OpenAI only redirects back to 127.0.0.1.";
   return null;
 }
 

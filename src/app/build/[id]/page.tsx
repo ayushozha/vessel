@@ -17,5 +17,5 @@ export default async function BuildPage({ params }: PageProps<"/build/[id]">) {
 
 export async function generateMetadata({ params }: PageProps<"/build/[id]">) {
   const project = await getProject((await params).id);
-  return { title: project ? `${project.name} · Vessel` : "Vessel" };
+  return { title: project ? `${project.name} · Adorable` : "Adorable" };
 }

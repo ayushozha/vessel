@@ -40,7 +40,7 @@ export function NewProject({ provider, model }: { provider: string; model: strin
   return (
     <main className={styles.page}>
       <header className={styles.mark}>
-        <b>Vessel</b>
+        <b>Adorable</b>
         <span>Step 2 · What are you building?</span>
       </header>
 

@@ -154,11 +154,11 @@ try {
   await evaluate(`[...document.querySelectorAll('[aria-label="Project files"] button')].find((b) => b.textContent.trim() === "server.js").click()`);
   await waitFor(() => evaluate(`document.querySelector('textarea[aria-label^=Edit]')?.value.includes("createServer")`), "the editor");
   await evaluate(`(() => { const t = document.querySelector('textarea[aria-label^=Edit]'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); })()`);
-  await send("Input.insertText", { text: "// edited in Vessel\n" });
+  await send("Input.insertText", { text: "// edited in Adorable\n" });
   await shot("2-unsaved-edit.png");
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
-  await waitFor(async () => (await fileApi("?path=server.js")).content?.includes("// edited in Vessel"), "the saved edit", 10_000);
+  await waitFor(async () => (await fileApi("?path=server.js")).content?.includes("// edited in Adorable"), "the saved edit", 10_000);
 
   // 4. The SVG previews as an image; the final tree is the evidence screenshot.
   await evaluate(`[...document.querySelectorAll('[aria-label="Project files"] button')].find((b) => b.textContent.trim() === "logo.svg").click()`);

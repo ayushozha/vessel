@@ -1,6 +1,6 @@
-# Vessel
+# Adorable
 
-**Software at the speed of a sentence.** Describe an app, and Vessel's agent builds, runs, repairs and ships it on [Wasmer](https://wasmer.io).
+**Software at the speed of a sentence.** Describe an app, and Adorable's agent builds, runs, repairs and ships it on [Wasmer](https://wasmer.io).
 
 ![Status](https://img.shields.io/badge/status-hackathon%20prototype-0A0A0B)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-0A0A0B)
@@ -48,7 +48,7 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?token=…`). Every page and API call needs this launch's token, so other local processes, including generated apps in their sandboxes, cannot use Vessel. Use `127.0.0.1`, not `localhost` (see below); app previews are served from `localhost` on purpose so they never receive Vessel's cookie.
+Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?token=…`). Every page and API call needs this launch's token, so other local processes, including generated apps in their sandboxes, cannot use Adorable. Use `127.0.0.1`, not `localhost` (see below); app previews are served from `localhost` on purpose so they never receive Adorable's cookie.
 
 ## Configuration
 
@@ -66,7 +66,7 @@ No model IDs are configured or hardcoded. Each provider's model list is fetched 
 - On Windows, owner-only file modes are not enforced; the file inherits your user profile's permissions. On a shared Windows machine, point `VESSEL_CREDENTIALS_PATH` at a folder only you can read.
 - A key is saved only after the provider accepts it (its model-list endpoint returns success).
 - API routes answer only local, same-origin requests, which also blocks DNS-rebinding hosts.
-- ChatGPT uses OpenAI's documented flow for locally run apps: PKCE (S256), one-time state and nonce that expire after 10 minutes, ID-token signature verification against OpenAI's JWKS, and a required `chatgpt.tokens.use.direct` scope before the plan can be used. A hosted version of Vessel would need OpenAI's approval and a different client.
+- ChatGPT uses OpenAI's documented flow for locally run apps: PKCE (S256), one-time state and nonce that expire after 10 minutes, ID-token signature verification against OpenAI's JWKS, and a required `chatgpt.tokens.use.direct` scope before the plan can be used. A hosted version of Adorable would need OpenAI's approval and a different client.
 - GLM's `/models` endpoint is not officially documented. A 404 there saves the key as *unverified* and asks for a model ID rather than claiming the key works.
 
 ## API
@@ -94,7 +94,7 @@ All routes are local-only.
 | `src/app/api/` | Route handlers |
 | `src/app/onboarding/` | Onboarding UI |
 | `src/lib/memory.ts` | Provena-backed project and user memory |
-| `scripts/setup-provena.mjs` | Installs a pinned Provena build into Vessel's toolchains |
+| `scripts/setup-provena.mjs` | Installs a pinned Provena build into Adorable's toolchains |
 
 ## Testing
 
@@ -108,7 +108,7 @@ pnpm build
 Each project workspace is a [Provena](https://github.com/ayushozha/provena) brain (`.provena/`, an append-only memory ledger plus a repo map), so follow-up edits never start cold:
 
 - The first brief is stored as the project's founding decision.
-- The model records lasting decisions and preferences with `<memory>` blocks; Vessel writes them to the ledger after the run, in the background.
+- The model records lasting decisions and preferences with `<memory>` blocks; Adorable writes them to the ledger after the run, in the background.
 - Every run recalls them (rules you added first, then newest) into the prompt.
 - Preferences marked *all my projects* go to a user-level brain at `~/.config/vessel/brain`.
 - The Memory tab lists everything remembered and lets you add rules. Provena gets a minimal environment (no provider keys), and the project's git repo runs no hooks.

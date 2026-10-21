@@ -1,5 +1,5 @@
 // Per-project PostgreSQL host. Forked by src/lib/database.ts as a plain Node child with a scrubbed environment
-// (no permission model: PGlite needs process.binding). It runs only Vessel's code: PGlite (Postgres compiled to
+// (no permission model: PGlite needs process.binding). It runs only Adorable's code: PGlite (Postgres compiled to
 // WebAssembly) with an on-disk data directory, so app data survives restarts, and serves it over TCP so the
 // app in its Wasmer sandbox connects with an ordinary Postgres client.
 // Protocol (process IPC): parent sends { id, op, ...args }; child replies { id, ok, error?, port? }.
@@ -37,5 +37,5 @@ process.on("message", async (message) => {
     process.send?.({ id: message.id, ok: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
-// Exit with the Vessel server: a closed IPC channel means the parent is gone.
+// Exit with the Adorable server: a closed IPC channel means the parent is gone.
 process.on("disconnect", () => process.exit(0));

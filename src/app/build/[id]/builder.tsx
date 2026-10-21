@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatMessage } from "@/lib/generator/history";
+import { Logo } from "@/app/logo";
 import { KINDS } from "@/lib/kinds";
 import type { Project } from "@/lib/projects";
 import type { ActiveModel } from "@/lib/readiness";
@@ -86,13 +87,8 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
       <header className={styles.bar}>
         <div className={styles.crumbs}>
           <Link href="/projects" className={styles.logo} aria-label="All projects">
-            <svg viewBox="0 0 22 22" aria-hidden="true">
-              <polygon points="11,2 2,19 20,19" fill="none" stroke="currentColor" strokeWidth="1.5" />
-              <line x1="11" y1="12" x2="22" y2="8" stroke="#FF3D6E" strokeWidth="1.2" />
-              <line x1="11" y1="12" x2="22" y2="12" stroke="#F2B705" strokeWidth="1.2" />
-              <line x1="11" y1="12" x2="22" y2="16" stroke="#6D4AFF" strokeWidth="1.2" />
-            </svg>
-            Vessel
+            <Logo />
+            Adorable
           </Link>
           <span className={styles.slash}>/</span>
           <ProjectSwitcher id={project.id} name={project.name} />

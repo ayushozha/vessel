@@ -24,12 +24,12 @@ describe("sanitizeChatgptBody", () => {
     const out = sanitizeChatgptBody({
       instructions: "base",
       input: [
-        { role: "system", content: "You are Vessel." },
+        { role: "system", content: "You are Adorable." },
         { role: "system", content: [{ type: "input_text", text: "Write files." }] },
         { role: "user", content: [{ type: "input_text", text: "hi" }] },
       ],
     });
-    expect(out.instructions).toBe("base\n\nYou are Vessel.\n\nWrite files.");
+    expect(out.instructions).toBe("base\n\nYou are Adorable.\n\nWrite files.");
     expect(out.input).toEqual([{ role: "user", content: [{ type: "input_text", text: "hi" }] }]);
   });
 

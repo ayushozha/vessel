@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Logo } from "@/app/logo";
 import { KINDS, type Kind } from "@/lib/kinds";
 import type { Project } from "@/lib/projects";
 import type { RuntimeStatus } from "@/lib/runtime";
@@ -64,14 +65,9 @@ export function ProjectsHome({ model }: { model: { provider: string; model: stri
   return (
     <div className={styles.page}>
       <header className={styles.bar}>
-        <Link href="/" className={styles.logo} aria-label="Vessel home">
-          <svg viewBox="0 0 22 22" aria-hidden="true">
-            <polygon points="11,2 2,19 20,19" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="11" y1="12" x2="22" y2="8" stroke="#FF3D6E" strokeWidth="1.2" />
-            <line x1="11" y1="12" x2="22" y2="12" stroke="#F2B705" strokeWidth="1.2" />
-            <line x1="11" y1="12" x2="22" y2="16" stroke="#6D4AFF" strokeWidth="1.2" />
-          </svg>
-          Vessel
+        <Link href="/" className={styles.logo} aria-label="Adorable home">
+          <Logo />
+          Adorable
         </Link>
         <Link href="/onboarding" className={styles.modelChip} title="Change model">
           <i />
