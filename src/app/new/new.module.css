@@ -62,7 +62,7 @@
 .label i { width: 7px; height: 7px; border-radius: 50%; }
 .textarea { width: 100%; border: 0; resize: vertical; font: 400 clamp(20px, 2.2vw, 26px)/1.35 var(--font-display), sans-serif; letter-spacing: -0.02em; color: var(--ink); background: transparent; min-height: 2.8em; }
 .textarea:focus { outline: none; }
-.textarea::placeholder { color: #d9c3cd; }
+.textarea::placeholder { color: #b89aa6; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .examples { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .example { font: 13px var(--font-display), sans-serif; color: var(--ink-2); background: var(--wash); border: 1px solid var(--hair); border-radius: 999px; padding: 7px 12px; cursor: pointer; }

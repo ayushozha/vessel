@@ -125,7 +125,7 @@
 .sourceHead { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 37px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--hair); font: 500 11px var(--font-mono), monospace; color: var(--ink-2); background: var(--wash); }
 .source pre { margin: 0; overflow: auto; padding: 12px 0; font: 12.5px/1.7 var(--font-mono), monospace; color: var(--ink); counter-reset: none; }
 .line { display: block; white-space: pre; padding-right: 16px; }
-.line em { display: inline-block; width: 44px; padding-right: 14px; text-align: right; font-style: normal; color: #cdb4c0; user-select: none; }
+.line em { display: inline-block; width: 44px; padding-right: 14px; text-align: right; font-style: normal; color: #a98c9a; user-select: none; }
 
 /* logs */
 .logs { display: flex; flex-direction: column; overflow: auto; }
@@ -160,7 +160,7 @@
 .editorActions button[data-primary] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .editorActions button:disabled { opacity: 0.3; cursor: default; }
 .editor { display: flex; align-items: flex-start; overflow: auto; min-height: 0; font: 12.5px/1.7 var(--font-mono), monospace; }
-.editor pre { position: sticky; left: 0; flex: none; margin: 0; padding: 12px 14px 12px 0; width: 44px; text-align: right; color: #cdb4c0; background: var(--paper); user-select: none; font: inherit; }
+.editor pre { position: sticky; left: 0; flex: none; margin: 0; padding: 12px 14px 12px 0; width: 44px; text-align: right; color: #a98c9a; background: var(--paper); user-select: none; font: inherit; }
 .editor textarea { flex: 1 0 auto; min-width: calc(100% - 44px); min-height: 100%; field-sizing: content; margin: 0; padding: 12px 16px 12px 0; border: 0; resize: none; overflow: hidden auto; white-space: pre; font: inherit; color: var(--ink); background: transparent; tab-size: 2; }
 .editor textarea:focus { outline: none; }
 .imagePreview { display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; min-height: 0; overflow: auto; background: repeating-conic-gradient(var(--wash) 0% 25%, var(--paper) 0% 50%) 0 0 / 16px 16px; }

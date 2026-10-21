@@ -23,10 +23,10 @@
 }
 .icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 .icon:hover:not(:disabled) { border-color: var(--ink); }
-.icon:disabled { color: #d9c3cd; cursor: not-allowed; }
+.icon:disabled { color: #b89aa6; cursor: not-allowed; }
 .divider { width: 1px; height: 20px; background: var(--hair); margin: 0 4px; }
 .zoom { font: 500 11px var(--font-mono), monospace; border: 1px solid var(--hair); border-radius: 9px; height: 32px; padding: 0 8px; background: var(--paper); color: var(--ink); }
-.zoom:disabled { color: #d9c3cd; }
+.zoom:disabled { color: #b89aa6; }
 .confirm { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono), monospace; color: var(--s1); padding-left: 4px; }
 .confirm button { font: inherit; border: 1px solid var(--hair); border-radius: 999px; background: var(--paper); padding: 5px 9px; cursor: pointer; }
 .confirm button:first-of-type { background: var(--s1); color: #fff; border-color: var(--s1); }
