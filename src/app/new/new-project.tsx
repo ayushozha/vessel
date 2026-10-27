@@ -41,7 +41,7 @@ export function NewProject({ provider, model }: { provider: string; model: strin
     <main className={styles.page}>
       <header className={styles.mark}>
         <b>Adorable</b>
-        <span>Step 2 · What are you building?</span>
+        <span>Step 3 · What are you building?</span>
       </header>
 
       <form className={styles.body} onSubmit={create}>
@@ -120,7 +120,7 @@ export function NewProject({ provider, model }: { provider: string; model: strin
       </form>
 
       <footer className={styles.footer}>
-        <Link href="/onboarding">← Step 1 · Model</Link>
+        <Link href="/onboarding">← Step 2 · Model</Link>
         <Link href="/projects">All projects</Link>
         <span>Nothing runs until the builder opens.</span>
       </footer>

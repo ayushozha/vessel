@@ -25,6 +25,7 @@ Model-agnostic onboarding · ChatGPT plan usage (local mode) · OpenAI · Anthro
 
 | Area | State |
 |---|---|
+| Onboarding step 1: Sign in with Wasmer (creates the wasmer.io account if needed and links it; required before anything else) | Implemented, tested up to wasmer.io log in; needs a real sign-in to confirm end to end |
 | Onboarding: connect OpenAI, Anthropic or GLM (Z.ai / BigModel) with an API key | Implemented, tested |
 | Onboarding: Continue with ChatGPT (local mode, plan usage) | Implemented, tested up to OpenAI consent; needs a real sign-in to confirm end to end |
 | Model selection from each provider's live model list | Implemented |
@@ -55,6 +56,7 @@ Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?t
 | Variable | Default | Effect |
 |---|---|---|
 | `CHATGPT_LOCAL_MODE` | off | `true` enables Continue with ChatGPT. Only works when the app is opened at `127.0.0.1`, because OpenAI only redirects back to a `127.0.0.1` loopback address. |
+| `WASMER_REGISTRY` | `https://registry.wasmer.io/graphql` | Wasmer GraphQL API used for sign-in (for example `https://registry.wasmer.wtf/graphql` for the dev environment). |
 | `VESSEL_CREDENTIALS_PATH` | `~/.config/vessel/credentials.json` | Where API keys and ChatGPT tokens are stored. |
 | `VESSEL_PROVENA_CLI` | `~/.config/vessel/toolchains/provena/cli/dist/cli.js` | Provena CLI used for project memory. Memory is off when it is missing. |
 
@@ -62,6 +64,7 @@ No model IDs are configured or hardcoded. Each provider's model list is fetched 
 
 ## How credentials are handled
 
+- Sign in with Wasmer uses the same flow as `wasmer login`: Adorable asks Wasmer for a nonce whose callback is a one-shot listener on a random `127.0.0.1` port with an unguessable path, then opens `wasmer.io/auth/cli`. Signed-out visitors log in or sign up on wasmer.io first. When the user authorizes, wasmer.io posts a personal API token (named `adorable`) to the listener; Adorable accepts it only from wasmer.io's origin, checks it with Wasmer's `viewer` query, stores it and closes the listener. Sign out forgets the token locally; revoke it in Wasmer's settings.
 - Keys and tokens are stored only in the local credentials file (owner-only permissions, atomic writes). They are never sent to the browser; the UI only sees the last four characters.
 - On Windows, owner-only file modes are not enforced; the file inherits your user profile's permissions. On a shared Windows machine, point `VESSEL_CREDENTIALS_PATH` at a folder only you can read.
 - A key is saved only after the provider accepts it (its model-list endpoint returns success).
@@ -75,6 +78,8 @@ All routes are local-only.
 
 | Route | Purpose |
 |---|---|
+| `GET /api/wasmer` · `DELETE` | Linked Wasmer account (username and email only) · sign out |
+| `POST /api/wasmer/login` · `GET ?id=` · `DELETE ?id=` | Start a Wasmer sign-in (returns `authUrl` and `signupUrl`) · poll it · cancel it |
 | `GET /api/providers` | Connection status (masked), active provider and model, ChatGPT local-mode availability |
 | `POST /api/providers` | `{ provider, apiKey, region? }`: verify a key and store it; returns the model list |
 | `PATCH /api/providers` | `{ provider, model }`: choose a model and make that provider active |
@@ -87,6 +92,7 @@ All routes are local-only.
 
 | Path | Role |
 |---|---|
+| `src/lib/wasmer.ts`, `src/lib/wasmer-login.ts` | Wasmer GraphQL client; Sign in with Wasmer (nonce flow and loopback callback) |
 | `src/lib/providers.ts` | Provider registry and model-list adapters |
 | `src/lib/credentials.ts` | Local credential store |
 | `src/lib/chatgpt.ts` | ChatGPT local OAuth flow, ID-token verification, token refresh |

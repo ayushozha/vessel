@@ -109,6 +109,8 @@
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .chatgpt { display: inline-flex; align-items: center; gap: 10px; }
 .chatgpt::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--s4); }
+.wasmer { display: inline-flex; align-items: center; gap: 10px; }
+.wasmer::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--s3); }
 .link { background: none; border: 0; padding: 0; font: 13px var(--font-display), sans-serif; color: var(--ink-2); text-decoration: underline; cursor: pointer; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-block: 1px solid var(--hair); }
 .mono { font: 13px var(--font-mono), monospace; color: var(--ink-2); overflow-wrap: anywhere; }

@@ -2,6 +2,12 @@
 import { readStore } from "./credentials";
 import type { ProviderId } from "./providers";
 
+/** The linked Wasmer account. Adorable needs one before anything else: Step 1 of onboarding. */
+export async function getWasmerAccount(): Promise<{ username: string } | null> {
+  const { wasmer } = await readStore();
+  return wasmer ? { username: wasmer.username } : null;
+}
+
 export type ActiveModel = { provider: ProviderId; model: string };
 
 export async function getActiveModel(): Promise<ActiveModel | null> {
