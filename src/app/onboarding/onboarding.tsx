@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import styles from "./onboarding.module.css";
@@ -38,7 +39,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
+export function Onboarding({ wasmerUser, chatgptResult }: { wasmerUser: string; chatgptResult?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [selected, setSelected] = useState<ProviderId>("chatgpt");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
     <main className={styles.page}>
       <header className={styles.mark}>
         <b>Adorable</b>
-        <span>Step 1 · Connect a model</span>
+        <span>Step 2 · Connect a model</span>
       </header>
 
       <div className={styles.grid}>
@@ -78,6 +79,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
             Bring your own <span className={styles.u}>intelligence.</span>
           </h1>
           <p className={styles.sub}>Pick where Adorable’s coding agent gets its model. Keys stay on this machine.</p>
+          <WasmerAccount username={wasmerUser} />
           {resultMessage && (
             <p className={chatgptResult === "connected" ? styles.ok : styles.err} role="status">
               {resultMessage}
@@ -133,6 +135,22 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
         )}
       </footer>
     </main>
+  );
+}
+
+function WasmerAccount({ username }: { username: string }) {
+  const router = useRouter();
+  const signOut = async () => {
+    await api("/api/wasmer", { method: "DELETE" });
+    router.refresh();
+  };
+  return (
+    <div className={styles.row}>
+      <span className={styles.mono}>Wasmer · {username}</span>
+      <button type="button" className={styles.link} onClick={signOut}>
+        Sign out
+      </button>
+    </div>
   );
 }
 

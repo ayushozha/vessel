@@ -38,6 +38,15 @@ const PendingChatgpt = z.object({
   expiresAt: z.number(),
 });
 
+/** The linked wasmer.io account: a personal API token from the `wasmer login` flow (src/lib/wasmer-login.ts). */
+const WasmerCredential = z.object({
+  token: z.string(),
+  username: z.string(),
+  email: z.string().optional(),
+  registry: z.string(),
+  savedAt: z.string(),
+});
+
 const Store = z.object({
   version: z.literal(1),
   hostId: z.string(),
@@ -49,9 +58,11 @@ const Store = z.object({
   }),
   chatgpt: ChatgptCredential.optional(),
   pendingChatgpt: PendingChatgpt.optional(),
+  wasmer: WasmerCredential.optional(),
 });
 
 export type Store = z.infer<typeof Store>;
+export type WasmerCredential = z.infer<typeof WasmerCredential>;
 export type KeyCredential = z.infer<typeof KeyCredential>;
 export type ChatgptCredential = z.infer<typeof ChatgptCredential>;
 export type PendingChatgpt = z.infer<typeof PendingChatgpt>;
