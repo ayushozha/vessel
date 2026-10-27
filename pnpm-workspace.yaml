@@ -1,3 +1,4 @@
 ignoredBuiltDependencies:
+  - bufferutil
   - sharp
   - unrs-resolver

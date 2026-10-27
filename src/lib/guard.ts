@@ -11,7 +11,7 @@ export function effectiveUrl(request: Request): URL {
 
 export function guardLocal(request: Request): Response | null {
   const url = effectiveUrl(request);
-  if (!LOCAL_HOSTS.has(url.hostname)) return Response.json({ error: "Vessel only runs locally." }, { status: 403 });
+  if (!LOCAL_HOSTS.has(url.hostname)) return Response.json({ error: "Adorable only runs locally." }, { status: 403 });
   if (request.method !== "GET") {
     const origin = request.headers.get("origin");
     if (origin !== url.origin) return Response.json({ error: "Cross-origin request blocked." }, { status: 403 });

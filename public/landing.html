@@ -1,0 +1,714 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Adorable · From one sentence to a running app</title><meta name="description" content="Describe it. Adorable builds and runs it on Wasmer."><link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2022%2022%22%3E%3Crect%20width=%2222%22%20height=%2222%22%20rx=%227%22%20fill=%22%23FF4F7B%22/%3E%3Cpath%20d=%22M11%2016.6C5.4%2012.9%205.7%207.2%208.7%207.2c1.3%200%202%20.8%202.3%201.6.3-.8%201-1.6%202.3-1.6%203%200%203.3%205.7-2.3%209.4Z%22%20fill=%22%23fff%22/%3E%3C/svg%3E"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bright rounded pages in berry ink, centered hero on a peach-to-rose glow, soft cards. Closing band is berry-black. */
+:root {
+  color-scheme: light;
+  --paper: #FFFFFF;
+  --ink: #341029;
+  --ink-2: #5E4554;
+  --mute: #9A8591;
+  --hair: #F1E3E9;
+  --wash: #FFF6F8;
+  --void: #1E0A19;
+  --s1: #F43F6B; --s2: #FF8A4C; --s3: #F5A524; --s4: #1FBF8F; --s5: #FF5FA2; --s6: #6C7BFF;
+  --spectrum: linear-gradient(90deg, #FFB199, #FF6FA0, #FF4F7B);
+  --rainbow: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6));
+  --display: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--display); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.band { padding-block: clamp(80px, 11vw, 150px); }
+.band + .band { border-top: 1px solid var(--hair); }
+
+/* precision header on every section */
+.mark { display: flex; justify-content: space-between; gap: 16px; font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); padding-bottom: 14px; border-bottom: 1px solid var(--hair); margin-bottom: clamp(40px, 6vw, 72px); }
+.mark b { color: #fff; background: var(--ink); font-weight: 500; padding: 7px 12px; border-radius: 999px; margin: -7px 0; }
+h1, h2 { font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(44px, 7vw, 96px); }
+h2 { font-size: clamp(36px, 5vw, 72px); }
+.u { position: relative; white-space: nowrap; }
+.u::after { content: ""; position: absolute; left: .02em; right: .04em; bottom: .04em; height: .32em; border-radius: .1em; background: var(--spectrum); opacity: .4; mix-blend-mode: multiply; }
+.sub { font: 400 clamp(17px, 1.45vw, 20px)/1.45 var(--display); color: var(--ink-2); max-width: 40ch; margin: 0; letter-spacing: -0.01em; }
+.mono { font-family: var(--mono); }
+.btn { font: 500 14px/1 var(--display); letter-spacing: -0.005em; border-radius: 999px; padding: 13px 22px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; text-decoration: none; display: inline-flex; gap: 10px; align-items: center; transition: transform .25s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn.outline { background: transparent; color: var(--ink); }
+:focus-visible { outline: 2px solid var(--s5); outline-offset: 3px; }
+
+/* nav */
+nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 22px; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 500; font-size: 19px; letter-spacing: -0.03em; }
+.logo svg { width: 22px; height: 22px; }
+.nav-r { display: flex; gap: 10px; align-items: center; }
+.nav-r .lk { font-size: 14px; color: var(--ink-2); text-decoration: none; padding: 0 10px; }
+
+/* hero */
+.hero { position: relative; padding-block: clamp(36px, 6vw, 80px) clamp(70px, 9vw, 120px); }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: -2; background: radial-gradient(900px 520px at 50% 85%, rgba(255,111,160,.24), rgba(255,177,153,.14) 45%, transparent 75%); }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(to right, var(--hair) 1px, transparent 1px), linear-gradient(to bottom, var(--hair) 1px, transparent 1px); background-size: 64px 64px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 60% 60%, #000 10%, transparent 75%); mask-image: radial-gradient(ellipse 70% 60% at 60% 60%, #000 10%, transparent 75%); opacity: .7; }
+.hero-top { display: grid; justify-items: center; gap: 22px; text-align: center; }
+.hero-top .sub { margin: 0 auto; }
+.stage { display: grid; grid-template-columns: 340px 1fr; gap: 0; align-items: center; margin-top: clamp(44px, 6vw, 80px); }
+.stage > * { min-width: 0; }
+.prompt { background: var(--paper); border: 1px solid var(--hair); border-radius: 20px; padding: 16px; display: grid; gap: 14px; box-shadow: 0 1px 2px rgba(52,16,41,.06), 0 30px 70px -30px rgba(255,79,123,.4); position: relative; z-index: 1; }
+.prompt .lbl { display: flex; justify-content: space-between; font: 500 10.5px/1 var(--mono); letter-spacing: .14em; color: var(--mute); text-transform: uppercase; }
+.prompt .lbl i { width: 7px; height: 7px; border-radius: 50%; background: var(--s4); display: inline-block; margin-right: 6px; }
+.typed { font-size: 19px; line-height: 1.35; letter-spacing: -0.02em; min-height: 2.7em; margin: 0; }
+.caret { display: inline-block; width: 2px; height: 1em; background: var(--ink); vertical-align: -0.12em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.prompt .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.prompt .row span { font: 11px var(--mono); color: var(--mute); }
+.beam { width: 100%; height: auto; display: block; overflow: visible; }
+.beam text { font: 500 15px var(--mono); fill: var(--ink); letter-spacing: .02em; }
+.beam .ann { font: 500 11px var(--mono); fill: var(--mute); letter-spacing: .14em; }
+.pulse { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: .07 .93; animation: run 2.6s linear infinite; }
+.pulse.fan { animation-delay: 1s; }
+.stage.firing .pulse { animation-duration: .9s; }
+.stage.firing .pulse.fan { animation-delay: .35s; }
+@keyframes run { from { stroke-dashoffset: .07; } to { stroke-dashoffset: -.93; } }
+.legend { display: none; }
+
+/* loop */
+.loop-head { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; }
+.tracks { margin-top: clamp(56px, 7vw, 96px); display: grid; gap: 44px; }
+.track { display: grid; grid-template-columns: 110px 1fr 150px; gap: 24px; align-items: center; }
+.track > * { min-width: 0; }
+.tl, .tr { font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+.tr { text-align: right; }
+.line { position: relative; display: flex; justify-content: space-between; align-items: center; }
+.line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: repeating-linear-gradient(90deg, var(--mute) 0 4px, transparent 4px 9px); }
+.line span { position: relative; background: var(--paper); font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--hair); color: var(--mute); white-space: nowrap; }
+.track.now .line::before { height: 2px; margin-top: -.5px; background: var(--spectrum); }
+.track.now .line span { color: var(--ink); border-color: var(--ink); }
+.track.now .tl, .track.now .tr { color: var(--ink); }
+.runner { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); animation: travel 5s cubic-bezier(.65,0,.35,1) infinite; z-index: 1; }
+@keyframes travel { from { left: 0%; } to { left: 100%; } }
+.manifesto { margin-top: clamp(80px, 10vw, 140px); font-weight: 600; font-size: clamp(32px, 4.4vw, 64px); line-height: 1.02; letter-spacing: -0.045em; max-width: 19ch; text-wrap: balance; }
+
+/* scope */
+.grid6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: clamp(48px, 6vw, 80px); }
+.card { border: 1px solid var(--hair); border-radius: 20px; background: var(--paper); padding: 22px; display: grid; gap: 18px; min-width: 0; transition: background .3s ease; }
+.card:hover { background: var(--wash); }
+.viz { height: 160px; border: 1px solid var(--hair); border-radius: 14px; background: var(--wash); position: relative; overflow: hidden; padding: 14px; }
+.card p { margin: 0; font: 400 13.5px/1.45 var(--mono); color: var(--ink-2); }
+.card footer { display: flex; justify-content: space-between; align-items: center; font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+.kind { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); }
+.kind i { width: 8px; height: 8px; border-radius: 2px; }
+.kind.app i { background: var(--ink); }
+.kind.agent i { border-radius: 50%; background: var(--spectrum); }
+/* wireframes */
+.bar { height: 6px; border-radius: 3px; background: var(--hair); }
+.wf-desk { display: grid; grid-template-columns: 44px 1fr; gap: 12px; height: 100%; }
+.wf-desk .side { display: grid; gap: 7px; align-content: start; border-right: 1px solid var(--hair); padding-right: 10px; }
+.wf-desk .rows { display: grid; gap: 9px; align-content: start; }
+.wf-desk .r { display: grid; grid-template-columns: 8px 1fr 34px; gap: 8px; align-items: center; }
+.dotc { width: 8px; height: 8px; border-radius: 50%; }
+.wf-flow { display: flex; align-items: center; justify-content: space-between; height: 100%; padding-inline: 4px; }
+.node { font: 500 10px var(--mono); border: 1px solid var(--ink); border-radius: 6px; padding: 6px 8px; background: var(--paper); position: relative; z-index: 1; white-space: nowrap; }
+.node.round { border-radius: 999px; }
+.wf-flow .wire { flex: 1; height: 1px; background: var(--ink); margin-inline: 4px; }
+.wf-votes { display: flex; align-items: flex-end; gap: 10px; height: 100%; padding-top: 10px; }
+.wf-votes i { flex: 1; background: var(--hair); border-radius: 4px 4px 0 0; }
+.wf-photo { display: grid; grid-template-columns: 96px 1fr; gap: 14px; height: 100%; align-items: center; }
+.wf-photo .img { aspect-ratio: 1; max-width: 100%; border-radius: 8px; background: radial-gradient(circle at 30% 30%, #fff 0 12%, transparent 13%), conic-gradient(from 200deg, var(--s5), var(--s6), var(--s1), var(--s2), var(--s3), var(--s4), var(--s5)); opacity: .85; }
+.wf-photo .txt { display: grid; gap: 8px; }
+.wf-stock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; height: 100%; align-content: center; }
+.wf-stock i { aspect-ratio: 1.3; border: 1px solid var(--hair); border-radius: 6px; max-width: 100%; }
+.wf-stock i.low { border: 1.5px solid var(--s2); background: color-mix(in srgb, var(--s2) 10%, transparent); }
+.wf-logs { display: grid; gap: 6px; font: 10.5px/1.3 var(--mono); color: var(--mute); }
+.wf-logs .err { color: var(--s1); }
+.wf-logs .fix { color: var(--s4); }
+
+/* state */
+.state { display: grid; grid-template-columns: .9fr 1.1fr; gap: 32px; align-items: center; }
+.state > * { min-width: 0; }
+.figs { display: flex; gap: 0; margin-top: 44px; border-top: 1px solid var(--hair); }
+.fig { flex: 1; padding: 16px 16px 0 0; display: grid; gap: 4px; }
+.fig + .fig { padding-left: 16px; border-left: 1px solid var(--hair); }
+.fig b { font-weight: 600; font-size: clamp(36px, 4vw, 56px); letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+.fig span { font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+.example { font: 11px var(--mono); color: var(--mute); margin-top: 18px; }
+.stack { position: relative; height: 460px; max-width: 100%; }
+.pl { position: absolute; left: 50%; top: 58%; width: 250px; height: 250px; margin: -125px 0 0 -125px; transform: rotateX(58deg) rotateZ(-45deg) translateZ(var(--z)); border: 1px solid rgba(52,16,41,.45); background: rgba(255,255,255,.62); display: flex; align-items: flex-end; padding: 12px; font: 500 12px var(--mono); color: var(--ink-2); }
+.pl.top { border: 1.5px solid transparent; border-image: var(--spectrum) 1; background: rgba(255,255,255,.8); color: var(--ink); animation: settle 6s ease-in-out infinite; }
+@keyframes settle { 0%, 62% { transform: rotateX(58deg) rotateZ(-45deg) translateZ(var(--z)); opacity: 1; } 72% { transform: rotateX(58deg) rotateZ(-45deg) translateZ(calc(var(--z) + 90px)); opacity: 0; } 80% { transform: rotateX(58deg) rotateZ(-45deg) translateZ(calc(var(--z) + 90px)); opacity: 0; } 100% { transform: rotateX(58deg) rotateZ(-45deg) translateZ(var(--z)); opacity: 1; } }
+.pl.slab { background: var(--void); border-color: var(--void); color: #fff; }
+.pl.edge { background: #2A0F23; border-color: #2A0F23; }
+.callout { position: absolute; font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.callout::before { content: ""; width: 44px; height: 1px; background: var(--mute); }
+
+/* proof */
+.proof { position: relative; }
+.hash { font: 400 clamp(28px, 6vw, 92px)/1 var(--mono); letter-spacing: -0.04em; color: var(--hair); white-space: nowrap; overflow: hidden; margin-top: clamp(40px, 5vw, 64px); user-select: none; }
+.hash em { font-style: normal; background: var(--spectrum); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.chain { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px; border-top: 1px solid var(--hair); }
+.link { padding: 18px 20px 0 0; display: grid; gap: 8px; position: relative; min-width: 0; }
+.link + .link { padding-left: 20px; border-left: 1px solid var(--hair); }
+.link span { font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); display: flex; align-items: center; gap: 8px; }
+.link span i { width: 7px; height: 7px; border-radius: 50%; }
+.link b { font: 500 15px var(--mono); letter-spacing: -0.01em; overflow-wrap: anywhere; }
+
+/* void */
+.void { background: var(--void); color: #fff; border-top: 0 !important; padding-block: clamp(90px, 12vw, 170px) 0; overflow: hidden; }
+.void h2 { font-size: clamp(44px, 8vw, 120px); text-align: center; }
+.void .sub { color: #C9AEBC; text-align: center; margin: 28px auto 0; }
+.void .ctas { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 40px; }
+.void .btn { background: #fff; color: var(--void); border-color: #fff; }
+.void .btn.outline { background: transparent; color: #fff; border-color: #4A2440; }
+.void .btn[disabled] { cursor: not-allowed; opacity: .7; }
+.pending { display: block; text-align: center; font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: #9C7D8E; margin-top: 14px; }
+.void .mark { color: #9C7D8E; border-color: #341A2E; }
+.void .mark b { color: #fff; }
+.eclipse-stage { display: grid; place-items: center; padding-block: clamp(30px, 6vw, 80px); }
+.eclipse-stage > * { grid-area: 1 / 1; }
+.void .eclipse-stage h2 { position: relative; z-index: 2; font-size: clamp(44px, 7.6vw, 112px); }
+.eclipse { --d: min(580px, 82vw); width: var(--d); aspect-ratio: 1; max-width: 100%; position: relative; }
+.eclipse > div { position: absolute; border-radius: 50%; }
+.corona { inset: -16%; background: conic-gradient(from 0deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6), var(--s1)); filter: blur(46px); opacity: .5; -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 70%, transparent 100%); mask: radial-gradient(closest-side, transparent 58%, #000 70%, transparent 100%); animation: spin 70s linear infinite; }
+.ring { inset: 0; background: conic-gradient(from 0deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6), var(--s1)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px)); animation: spin 70s linear infinite; }
+.disc { inset: 2px; background: radial-gradient(circle at 50% 50%, #1E0A19 62%, #160612 100%); }
+.dial { inset: -9%; background: repeating-conic-gradient(#3A1D33 0 .35deg, transparent .35deg 3deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 8px)); mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 8px)); }
+.dial.major { background: repeating-conic-gradient(from -.4deg, #6E4A62 0 .8deg, transparent .8deg 60deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 16px)); mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 16px)); transform: rotate(50deg); }
+.bead { inset: 0; transform: rotate(50deg); z-index: 1; }
+.bead::before { content: ""; position: absolute; left: 50%; top: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px 3px #fff, 0 0 36px 12px rgba(255,255,255,.45), 0 0 110px 40px rgba(242,183,5,.22); animation: glint 5s ease-in-out infinite; }
+.bead::after { content: ""; position: absolute; left: 50%; top: 0; width: 220px; height: 1px; margin-left: -110px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent); }
+@keyframes glint { 50% { box-shadow: 0 0 14px 4px #fff, 0 0 50px 18px rgba(255,255,255,.5), 0 0 140px 50px rgba(255,61,110,.2); } }
+@keyframes spin { to { transform: rotate(1turn); } }
+.stops { inset: 0; }
+.stops span { position: absolute; left: 50%; top: 50%; translate: -50% -50%; transform: rotate(var(--a)) translateY(calc(var(--d) * -.665)) rotate(calc(var(--a) * -1)); font: 500 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: #8A6A7C; white-space: nowrap; }
+.stops span.now { color: #fff; }
+@media (max-width: 640px) { .stops { display: none; } }
+@media (prefers-reduced-motion: reduce) { .corona, .ring, .bead::before { animation: none; } }
+.void footer { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid #341A2E; margin-top: clamp(90px, 11vw, 150px); padding-block: 24px 36px; font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: #9C7D8E; }
+
+/* light */
+#caustic { transform-box: view-box; transform-origin: 427px 236px; transition: transform 1.2s cubic-bezier(.2,.7,.2,1); }
+.breathe { transform-box: fill-box; transform-origin: center; animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.25); opacity: .55; } }
+.built { margin-top: clamp(56px, 7vw, 96px); display: flex; align-items: center; gap: 14px 30px; flex-wrap: wrap; border-top: 1px solid var(--hair); padding-top: 20px; font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+.built b { color: var(--ink); font-weight: 500; }
+.built span { display: inline-flex; align-items: center; gap: 10px; }
+.built span::before { content: ""; width: 5px; height: 5px; background: var(--ink); transform: rotate(45deg); }
+
+/* builder window */
+.app { margin-top: clamp(48px, 6vw, 80px); border: 1px solid var(--hair); border-radius: 22px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(52,16,41,.06), 0 60px 120px -50px rgba(255,79,123,.45); }
+.app-bar { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--hair); font: 400 12px var(--mono); color: var(--mute); }
+.app-bar b { color: var(--ink); font-weight: 500; }
+.steps { display: flex; justify-content: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.steps button { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); background: none; border: 1px solid transparent; border-radius: 999px; padding: 6px 10px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; transition: color .3s, border-color .3s; }
+.steps button i { width: 6px; height: 6px; border-radius: 50%; background: var(--hair); transition: background .3s; }
+.steps button.done { color: var(--ink-2); }
+.steps button.done i { background: var(--ink); }
+.steps button.on { color: var(--ink); border-color: var(--ink); }
+.steps button.on i { background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+.pill { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px; background: var(--ink); color: #fff; display: inline-flex; gap: 7px; align-items: center; min-width: 108px; justify-content: center; }
+.pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--s4); animation: blink 1.2s steps(1) infinite; }
+.app-body { display: grid; grid-template-columns: 300px 1fr; height: 440px; }
+.chat { border-right: 1px solid var(--hair); padding: 18px; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; overflow: hidden; background: var(--wash); min-width: 0; }
+.msg { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+.msg.you { align-self: flex-end; background: var(--ink); color: #fff; padding: 10px 13px; border-radius: 14px 14px 4px 14px; max-width: 90%; font-size: 14px; letter-spacing: -.01em; margin-bottom: 4px; }
+.msg.ai { font: 12px/1.5 var(--mono); color: var(--ink-2); display: flex; gap: 10px; }
+.msg.ai::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--c); }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+.pane { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; }
+.tabs { display: flex; gap: 2px; padding: 8px 14px 0; border-bottom: 1px solid var(--hair); overflow-x: auto; scrollbar-width: none; }
+.tabs span { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); padding: 9px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: color .3s, border-color .3s; }
+.tabs span.on { color: var(--ink); border-color: var(--ink); }
+.view { padding: 20px; overflow: hidden; min-width: 0; min-height: 0; animation: rise .4s ease both; }
+.chip { font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--hair); color: var(--mute); white-space: nowrap; }
+.chip.ok { color: #fff; background: var(--ink); border-color: var(--ink); }
+.v-res { display: grid; gap: 0; align-content: start; }
+.rq { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--hair); }
+.rq b { display: block; font-weight: 500; font-size: 15px; letter-spacing: -.01em; }
+.rq em { font-style: normal; font-size: 13px; color: var(--mute); }
+.v-code { display: grid; grid-template-columns: 150px 1fr; gap: 20px; }
+.tree { list-style: none; margin: 0; padding: 0 16px 0 0; border-right: 1px solid var(--hair); font: 12px/2 var(--mono); color: var(--ink-2); }
+.tree .in { padding-left: 14px; color: var(--mute); }
+.tree .on { color: var(--ink); background: var(--wash); border-radius: 4px; }
+.v-code pre { margin: 0; font: 12.5px/1.75 var(--mono); color: var(--ink); overflow-x: auto; }
+pre .c { color: var(--mute); } pre .k { color: var(--s6); } pre .f { color: var(--s5); } pre .s { color: var(--s2); }
+.v-logs { display: grid; gap: 4px; align-content: start; font: 12.5px/1.7 var(--mono); color: var(--ink-2); }
+.v-logs span { animation: rise .35s ease both; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.v-logs em { font-style: normal; }
+.v-logs .ok, .v-logs em.ok { color: var(--s4); } .v-logs .err { color: var(--s1); } .v-logs .fix { color: var(--s6); }
+.v-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+.v-checks span { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--hair); border-radius: 10px; font-size: 14px; letter-spacing: -.01em; }
+.v-checks i { width: 18px; height: 18px; border-radius: 50%; background: var(--s4); flex: none; position: relative; animation: pop .4s cubic-bezier(.2,.9,.3,1.4) both; }
+.v-checks span:nth-child(2) i { animation-delay: .1s; } .v-checks span:nth-child(3) i { animation-delay: .2s; } .v-checks span:nth-child(4) i { animation-delay: .3s; } .v-checks span:nth-child(5) i { animation-delay: .4s; } .v-checks span:nth-child(6) i { animation-delay: .5s; }
+.v-checks i::after { content: ""; position: absolute; left: 6px; top: 3.5px; width: 4px; height: 8px; border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+@keyframes pop { from { transform: scale(.4); } }
+.browser { border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.url { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--hair); font: 12px var(--mono); color: var(--ink-2); background: var(--wash); }
+.url i { width: 7px; height: 7px; border-radius: 50%; background: var(--s4); }
+.site { padding: 20px; overflow-x: auto; }
+.site-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 18px; letter-spacing: -.02em; }
+.site-h b { font-weight: 500; }
+.site table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.site td { padding: 12px 8px; border-top: 1px solid var(--hair); white-space: nowrap; }
+.site td.dim { color: var(--mute); font: 12px var(--mono); }
+
+@media (max-width: 960px) {
+  .app-bar { grid-template-columns: 1fr auto; }
+  .steps { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
+  .app-body { grid-template-columns: 1fr; height: auto; }
+  .chat { border-right: 0; border-bottom: 1px solid var(--hair); max-height: 210px; }
+  .view { min-height: 340px; }
+  .v-code { grid-template-columns: 1fr; }
+  .tree { display: none; }
+  .v-checks { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 960px) {
+  .stage { grid-template-columns: 1fr; gap: 28px; }
+  .beam text { display: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; }
+  .hero-top, .loop-head, .state { grid-template-columns: 1fr; }
+  .grid6 { grid-template-columns: 1fr 1fr; }
+  .chain { grid-template-columns: 1fr 1fr; }
+  .link:nth-child(3) { padding-left: 0; border-left: 0; }
+  .link:nth-child(n+3) { padding-top: 22px; }
+  .nav-r .lk { display: none; }
+}
+@media (max-width: 640px) {
+  .track { grid-template-columns: 1fr; gap: 14px; }
+  .tr { text-align: left; }
+  .line { flex-direction: column; align-items: flex-start; gap: 10px; padding-left: 22px; }
+  .line::before { left: 6px; right: auto; top: 0; bottom: 0; width: 1px; height: auto; background: repeating-linear-gradient(180deg, var(--mute) 0 4px, transparent 4px 9px); }
+  .track.now .line::before { width: 2px; height: auto; margin-top: 0; background: linear-gradient(180deg, #FFB199, #FF6FA0, #FF4F7B); }
+  .runner { display: none; }
+  .grid6 { grid-template-columns: 1fr; }
+  .stack { height: 380px; transform: scale(.8); }
+  .callout { display: none; }
+  .figs { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse, .runner, .pl.top, .caret, .breathe, .msg, .view, .v-logs span, .v-checks i, .pill i { animation: none; }
+  #caustic { transition: none; }
+  .pulse { display: none; }
+}
+</style>
+
+<!-- HERO -->
+<header class="wrap">
+  <nav>
+    <a class="logo" href="#top" aria-label="Adorable">
+      <svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="7" fill="#FF4F7B"/><path d="M11 16.6C5.4 12.9 5.7 7.2 8.7 7.2c1.3 0 2 .8 2.3 1.6.3-.8 1-1.6 2.3-1.6 3 0 3.3 5.7-2.3 9.4Z" fill="#fff"/></svg>
+      Adorable
+    </a>
+    <div class="nav-r">
+      <a class="lk" href="#loop">Loop</a>
+      <a class="lk" href="#scope">Apps &amp; agents</a>
+      <a class="lk" href="#proof">Proof</a>
+      <a class="btn outline" href="/projects">Open Adorable</a>
+    </div>
+  </nav>
+</header>
+
+<section class="band hero" id="top" style="padding-top:0">
+  <div class="wrap">
+    <div class="mark"><b>Build with AI</b><span>Runs on Wasmer</span></div>
+    <div class="hero-top">
+      <h1>From one sentence to a <span class="u">running app.</span></h1>
+      <p class="sub">Describe it. Adorable writes the code and runs it on Wasmer, with real data and memory.</p>
+    </div>
+
+    <div class="stage" id="stage">
+      <form class="prompt" id="prompt" autocomplete="off">
+        <div class="lbl"><span><i></i>Prompt</span><span>wasmer · edge</span></div>
+        <p class="typed" aria-live="polite"><span id="typed">A support desk my team can triage</span><span class="caret" aria-hidden="true"></span></p>
+        <div class="row"><span>one sentence in</span><button class="btn" type="submit">Build →</button></div>
+      </form>
+
+      <div>
+        <svg class="beam" viewBox="0 0 820 440" role="img" aria-label="A single beam of light from the prompt enters a prism and splits into interface, API, database, agent, checks and a live URL">
+          <defs>
+            <linearGradient id="beamIn" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="300" y2="0"><stop offset="0" stop-color="#341029" stop-opacity="0"/><stop offset=".2" stop-color="#341029"/></linearGradient>
+            <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#F5F6F9"/><stop offset="1" stop-color="#ECEEF4"/></linearGradient>
+            <linearGradient id="tint" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F43F6B" stop-opacity="0"/><stop offset=".7" stop-color="#6C7BFF" stop-opacity=".10"/><stop offset="1" stop-color="#FF5FA2" stop-opacity=".16"/></linearGradient>
+            <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="24"/></filter>
+            <clipPath id="prismClip"><path d="M355.8,97.1 Q360,88 364.2,97.1 L467.8,322.9 Q472,332 462,332 L258,332 Q248,332 252.2,322.9 Z"/></clipPath>
+            <filter id="blur2" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+            <filter id="blur18" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="18"/></filter>
+            <filter id="blur30" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="30"/></filter>
+            <linearGradient id="aura" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F43F6B"/><stop offset=".35" stop-color="#F5A524"/><stop offset=".65" stop-color="#FF5FA2"/><stop offset="1" stop-color="#6C7BFF"/></linearGradient>
+            <linearGradient id="sheen" gradientUnits="userSpaceOnUse" x1="270" y1="100" x2="440" y2="330"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset=".45" stop-color="#FFFFFF" stop-opacity=".35"/><stop offset=".7" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".15"/></linearGradient>
+            <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="250" y1="90" x2="470" y2="335"><stop offset="0" stop-color="#341029" stop-opacity=".45"/><stop offset=".5" stop-color="#6C7BFF" stop-opacity=".35"/><stop offset="1" stop-color="#FF5FA2" stop-opacity=".45"/></linearGradient>
+            <filter id="blur6"x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="5"/></filter>
+            <linearGradient id="front" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#F5F6FA"/><stop offset="1" stop-color="#E8EBF3"/></linearGradient>
+            <linearGradient id="side" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2E5EE"/><stop offset="1" stop-color="#F6F7FA"/></linearGradient>
+            <linearGradient id="edgeTint" x1="0" y1="0" x2="1" y2="0"><stop offset=".55" stop-color="#FF5FA2" stop-opacity="0"/><stop offset="1" stop-color="#6C7BFF" stop-opacity=".08"/></linearGradient>
+            <linearGradient id="disp" gradientUnits="userSpaceOnUse" x1="0" y1="229" x2="0" y2="243"><stop offset="0" stop-color="#F43F6B"/><stop offset=".2" stop-color="#FF8A4C"/><stop offset=".4" stop-color="#F5A524"/><stop offset=".6" stop-color="#1FBF8F"/><stop offset=".8" stop-color="#FF5FA2"/><stop offset="1" stop-color="#6C7BFF"/></linearGradient>
+            <linearGradient id="dispFade" gradientUnits="userSpaceOnUse" x1="301" y1="0" x2="415" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+            <linearGradient id="floor" gradientUnits="userSpaceOnUse" x1="445" y1="0" x2="725" y2="0"><stop offset="0" stop-color="#F43F6B"/><stop offset=".25" stop-color="#FF8A4C"/><stop offset=".45" stop-color="#F5A524"/><stop offset=".65" stop-color="#1FBF8F"/><stop offset=".85" stop-color="#FF5FA2"/><stop offset="1" stop-color="#6C7BFF" stop-opacity="0"/></linearGradient>
+            <radialGradient id="bloom"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#F5A524" stop-opacity=".25"/><stop offset="1" stop-color="#6C7BFF" stop-opacity="0"/></radialGradient>
+          </defs>
+          <mask id="causticFade" maskUnits="userSpaceOnUse" x="380" y="-200" width="600" height="840"><rect x="380" y="-200" width="600" height="840" fill="url(#cfade)"/></mask><linearGradient id="cfade" gradientUnits="userSpaceOnUse" x1="430" y1="0" x2="800" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><g mask="url(#causticFade)"><g id="caustic" filter="url(#soft)" opacity=".5">
+            <polygon points="427,236 900,-130 900,-10" fill="#F43F6B" opacity=".20"/>
+            <polygon points="427,236 900,-9 900,111" fill="#FF8A4C" opacity=".20"/>
+            <polygon points="427,236 900,113 900,233" fill="#F5A524" opacity=".22"/>
+            <polygon points="427,236 900,235 900,355" fill="#1FBF8F" opacity=".18"/>
+            <polygon points="427,236 900,357 900,477" fill="#FF5FA2" opacity=".18"/>
+            <polygon points="427,236 900,479 900,599" fill="#6C7BFF" opacity=".18"/>
+          </g></g>
+          <circle cx="430" cy="236" r="70" fill="url(#bloom)" opacity=".45" class="breathe"/>
+          <!-- ticks on the incoming beam -->
+          <g stroke="#C9C9CF" stroke-width="1">
+            <line x1="60" y1="212" x2="60" y2="228"/><line x1="100" y1="215" x2="100" y2="225"/><line x1="140" y1="215" x2="140" y2="225"/><line x1="180" y1="212" x2="180" y2="228"/><line x1="220" y1="215" x2="220" y2="225"/>
+          </g>
+          <path d="M0 220 H301" stroke="url(#beamIn)" stroke-width="1.5" fill="none"/>
+          <!-- aura: the prism glows its own spectrum into the page -->
+          <path d="M355.8,97.1 Q360,88 364.2,97.1 L467.8,322.9 Q472,332 462,332 L258,332 Q248,332 252.2,322.9 Z" fill="url(#aura)" filter="url(#blur30)" opacity=".35"/>
+          <!-- holographic glass body -->
+          <g clip-path="url(#prismClip)">
+            <rect x="240" y="80" width="240" height="260" fill="#FFFFFF"/>
+            <g filter="url(#blur18)" class="holo">
+              <ellipse cx="320" cy="300" rx="70" ry="50" fill="#6C7BFF" opacity=".30"/>
+              <ellipse cx="420" cy="290" rx="60" ry="55" fill="#FF5FA2" opacity=".30"/>
+              <ellipse cx="370" cy="200" rx="50" ry="60" fill="#F43F6B" opacity=".22"/>
+              <ellipse cx="400" cy="240" rx="45" ry="40" fill="#F5A524" opacity=".28"/>
+              <ellipse cx="300" cy="250" rx="40" ry="45" fill="#1FBF8F" opacity=".14"/>
+            </g>
+            <rect x="240" y="80" width="240" height="260" fill="url(#sheen)"/>
+            <!-- light splitting inside -->
+            <polygon points="301,220 427,228 427,244" fill="url(#disp)" filter="url(#blur2)" opacity=".85"/>
+            <polygon points="301,220 427,228 427,244" fill="url(#dispFade)"/>
+          </g>
+          <!-- inner bevel + hairline rim -->
+          <path d="M357.4,107 Q360,101.4 362.6,107 L459.6,317.2 Q462.2,323 455.8,323 L264.2,323 Q257.8,323 260.4,317.2 Z" fill="none" stroke="#FFFFFF" stroke-width="1.6" opacity=".95"/>
+          <path d="M355.8,97.1 Q360,88 364.2,97.1 L467.8,322.9 Q472,332 462,332 L258,332 Q248,332 252.2,322.9 Z" fill="none" stroke="url(#rim)" stroke-width="1"/>
+          <!-- glints -->
+          <circle cx="301" cy="220" r="7" fill="#FFFFFF" filter="url(#blur2)"/>
+          <circle cx="427" cy="236" r="14" fill="url(#bloom)" filter="url(#blur6)"/>
+          <text class="ann" x="360" y="50" text-anchor="middle">WASMER RUNTIME</text>
+          <line x1="360" y1="58" x2="360" y2="78" stroke="#8E8E96" stroke-dasharray="2 3"/>
+          <g fill="none" stroke-width="1.5">
+            <path d="M427 236 L640 70 H674" stroke="#F43F6B"/>
+            <path d="M427 236 L640 136 H674" stroke="#FF8A4C"/>
+            <path d="M427 236 L640 202 H674" stroke="#F5A524"/>
+            <path d="M427 236 L640 268 H674" stroke="#1FBF8F"/>
+            <path d="M427 236 L640 334 H674" stroke="#FF5FA2"/>
+            <path d="M427 236 L640 400 H674" stroke="#6C7BFF"/>
+          </g>
+          <g>
+            <path class="pulse" pathLength="1" d="M0 220 H301" stroke="#341029"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 70 H674" stroke="#F43F6B"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 136 H674" stroke="#FF8A4C"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 202 H674" stroke="#F5A524"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 268 H674" stroke="#1FBF8F"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 334 H674" stroke="#FF5FA2"/>
+            <path class="pulse fan" pathLength="1" d="M427 236 L640 400 H674" stroke="#6C7BFF"/>
+          </g>
+          <g>
+            <circle cx="676" cy="70" r="4" fill="#F43F6B"/><text x="690" y="75">Interface</text>
+            <circle cx="676" cy="136" r="4" fill="#FF8A4C"/><text x="690" y="141">API</text>
+            <circle cx="676" cy="202" r="4" fill="#F5A524"/><text x="690" y="207">Database</text>
+            <circle cx="676" cy="268" r="4" fill="#1FBF8F"/><text x="690" y="273">Agent</text>
+            <circle cx="676" cy="334" r="4" fill="#FF5FA2"/><text x="690" y="339">Checks</text>
+            <circle cx="676" cy="400" r="4" fill="#6C7BFF"/><text x="690" y="405">Live URL</text>
+          </g>
+        </svg>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background:var(--s1)"></i>Interface</span><span><i style="background:var(--s2)"></i>API</span><span><i style="background:var(--s3)"></i>Database</span><span><i style="background:var(--s4)"></i>Agent</span><span><i style="background:var(--s5)"></i>Checks</span><span><i style="background:var(--s6)"></i>Live URL</span>
+        </div>
+      </div>
+    </div>
+    <div class="built"><b>Built on</b><span>Wasmer Edge</span><span>Wasmer Registry</span><span>WASIX</span><span>InstaBoot</span><span>Managed Postgres</span><span>OpenAI</span></div>
+  </div>
+</section>
+
+<!-- LOOP -->
+<section class="band" id="loop">
+  <div class="wrap">
+    <div class="mark"><b>Loop</b><span>Iteration speed</span></div>
+    <div class="loop-head">
+      <h2>Idea to live URL. <span class="u">One loop.</span></h2>
+      <p class="sub">No handoffs between spec, code, infra and deploy. Change a sentence, ship a release.</p>
+    </div>
+    <div class="app" id="app">
+      <div class="app-bar">
+        <span>adorable / <b>support-desk</b></span>
+        <div class="steps" role="tablist" aria-label="Run stages">
+          <button type="button" role="tab" style="--c:var(--s1)"><i></i>Plan</button>
+          <button type="button" role="tab" style="--c:var(--s2)"><i></i>Generate</button>
+          <button type="button" role="tab" style="--c:var(--s3)"><i></i>Run</button>
+          <button type="button" role="tab" style="--c:var(--s1)"><i></i>Repair</button>
+          <button type="button" role="tab" style="--c:var(--s5)"><i></i>Verify</button>
+          <button type="button" role="tab" style="--c:var(--s4)"><i></i>Live</button>
+        </div>
+        <span class="pill" id="pill"><i></i><span>live</span></span>
+      </div>
+      <div class="app-body">
+        <aside class="chat">
+          <div class="msg you" data-s="0">A support desk my team can triage</div>
+          <div class="msg ai" data-s="0" style="--c:var(--s1)">Plan · React + API + Postgres. Needs 1 database.</div>
+          <div class="msg ai" data-s="1" style="--c:var(--s2)">14 files written.</div>
+          <div class="msg ai" data-s="2" style="--c:var(--s3)">Build on wasmer/node@22. 1 test failed.</div>
+          <div class="msg ai" data-s="3" style="--c:var(--s1)">Missing column “status”. Patched schema.sql.</div>
+          <div class="msg ai" data-s="4" style="--c:var(--s5)">14 / 14 checks pass on staging.</div>
+          <div class="msg ai" data-s="5" style="--c:var(--s4)">Live. Release v1 is active.</div>
+        </aside>
+        <div class="pane">
+          <div class="tabs"><span data-v="resources">Resources</span><span data-v="code">Code</span><span data-v="logs">Logs</span><span data-v="checks">Checks</span><span data-v="preview" class="on">Preview</span></div>
+
+          <div class="view v-res" data-v="resources" hidden>
+            <div class="rq"><span><b>Postgres database</b><em>Bound to the app, kept across releases</em></span><span class="chip ok">Approve</span></div>
+            <div class="rq"><span><b>Volume</b><em>Not needed</em></span><span class="chip">Skip</span></div>
+            <div class="rq"><span><b>GPU job</b><em>Not needed</em></span><span class="chip">Skip</span></div>
+            <div class="rq"><span><b>Limits</b><em>12 steps · 2 repairs · 600 s</em></span><span class="chip">Set</span></div>
+          </div>
+
+          <div class="view v-code" data-v="code" hidden>
+            <ul class="tree"><li>api/</li><li class="in on">tickets.ts</li><li class="in">health.ts</li><li>db/</li><li class="in">schema.sql</li><li>web/</li><li class="in">App.tsx</li><li class="in">Ticket.tsx</li><li>wasmer.toml</li></ul>
+            <pre><span class="c">// api/tickets.ts</span>
+<span class="k">export async function</span> <span class="f">list</span>(db) {
+  <span class="k">return</span> db.<span class="f">query</span>(
+    <span class="s">`select * from tickets</span>
+<span class="s">     order by created_at desc`</span>
+  )
+}
+
+<span class="k">export async function</span> <span class="f">create</span>(db, t) {
+  <span class="k">return</span> db.<span class="f">insert</span>(<span class="s">'tickets'</span>, {
+    ...t, status: <span class="s">'open'</span>
+  })
+}</pre>
+          </div>
+
+          <div class="view v-logs" data-v="logs" hidden>
+            <span data-s="2">$ pnpm install · <em class="ok">9/11 from cache</em></span>
+            <span data-s="2">$ pnpm build · 3.1s</span>
+            <span data-s="2">$ pnpm test</span>
+            <span data-s="2">  ✓ GET /tickets returns 200</span>
+            <span data-s="2" class="err">  ✕ POST /tickets → 500 · column "status" missing</span>
+            <span data-s="3" class="fix">+ db/schema.sql  status text not null default 'open'</span>
+            <span data-s="3">$ pnpm test</span>
+            <span data-s="3" class="ok">  ✓ 14 passed</span>
+          </div>
+
+          <div class="view v-checks" data-v="checks" hidden>
+            <span><i></i>Build</span><span><i></i>API contract</span><span><i></i>Create and reload ticket</span><span><i></i>Data survives restart</span><span><i></i>Staging URL returns 200</span><span><i></i>No secrets in bundle</span>
+          </div>
+
+          <div class="view v-prev" data-v="preview">
+            <div class="browser">
+              <div class="url"><i></i>support-desk-7f3a.wasmer.app</div>
+              <div class="site">
+                <div class="site-h"><b>Support desk</b><span class="btn" style="padding:7px 12px;font-size:12px">New ticket</span></div>
+                <table>
+                  <tr><td class="dim">1041</td><td>Halden Co.</td><td>Invoice PDF blank</td><td><span class="chip" style="color:var(--s1)">Open</span></td></tr>
+                  <tr><td class="dim">1042</td><td>Mirela Ostrova</td><td>Password reset loop</td><td><span class="chip" style="color:var(--s4)">Resolved</span></td></tr>
+                  <tr><td class="dim">1043</td><td>Pine &amp; Lantern</td><td>Export to CSV</td><td><span class="chip" style="color:var(--s1)">Open</span></td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tracks">
+      <div class="track">
+        <span class="tl">Before</span>
+        <div class="line"><span>Spec</span><span>Ticket</span><span>Scaffold</span><span>Infra</span><span>Review</span><span>Deploy</span><span>Handoff</span></div>
+        <span class="tr">Weeks</span>
+      </div>
+      <div class="track now">
+        <span class="tl">Adorable</span>
+        <div class="line"><i class="runner" aria-hidden="true"></i><span>Plan</span><span>Generate</span><span>Run</span><span>Repair</span><span>Verify</span><span>Live</span></div>
+        <span class="tr">One conversation</span>
+      </div>
+    </div>
+    <p class="manifesto">Every team will ship software the way they <span class="u">send a message.</span></p>
+  </div>
+</section>
+
+<!-- SCOPE -->
+<section class="band" id="scope">
+  <div class="wrap">
+    <div class="mark"><b>Scope</b><span>Apps · Agents</span></div>
+    <h2>Apps and agents. <span class="u">Same sentence.</span></h2>
+    <div class="grid6">
+      <article class="card">
+        <div class="viz"><div class="wf-desk">
+          <div class="side"><div class="bar" style="background:var(--ink)"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+          <div class="rows">
+            <div class="r"><i class="dotc" style="background:var(--s1)"></i><div class="bar"></div><div class="bar"></div></div>
+            <div class="r"><i class="dotc" style="background:var(--s4)"></i><div class="bar" style="width:70%"></div><div class="bar"></div></div>
+            <div class="r"><i class="dotc" style="background:var(--s2)"></i><div class="bar" style="width:85%"></div><div class="bar"></div></div>
+            <div class="r"><i class="dotc" style="background:var(--s4)"></i><div class="bar" style="width:60%"></div><div class="bar"></div></div>
+            <div class="r"><i class="dotc" style="background:var(--hair)"></i><div class="bar" style="width:78%"></div><div class="bar"></div></div>
+          </div>
+        </div></div>
+        <p>“A support desk my team can triage”</p>
+        <footer><span class="kind app"><i></i>App</span><span>postgres</span></footer>
+      </article>
+      <article class="card">
+        <div class="viz"><div class="wf-flow"><span class="node round">07:00</span><span class="wire"></span><span class="node">read tickets</span><span class="wire"></span><span class="node" style="border-color:var(--s6);color:var(--s6)">post digest</span></div></div>
+        <p>“Every morning, summarize new tickets for the team”</p>
+        <footer><span class="kind agent"><i></i>Agent</span><span>schedule</span></footer>
+      </article>
+      <article class="card">
+        <div class="viz"><div class="wf-votes"><i style="height:42%"></i><i style="height:78%;background:var(--spectrum)"></i><i style="height:55%"></i><i style="height:30%"></i><i style="height:64%"></i></div></div>
+        <p>“A book club with weekly votes”</p>
+        <footer><span class="kind app"><i></i>App</span><span>postgres</span></footer>
+      </article>
+      <article class="card">
+        <div class="viz"><div class="wf-photo"><div class="img"></div><div class="txt"><div class="bar" style="background:var(--ink);width:80%"></div><div class="bar"></div><div class="bar" style="width:60%"></div></div></div></div>
+        <p>“Caption product photos as they upload”</p>
+        <footer><span class="kind agent"><i></i>Agent</span><span>gpu · setup</span></footer>
+      </article>
+      <article class="card">
+        <div class="viz"><div class="wf-stock"><i></i><i></i><i class="low"></i><i></i><i></i><i></i><i></i><i class="low"></i></div></div>
+        <p>“Bakery inventory with low-stock alerts”</p>
+        <footer><span class="kind app"><i></i>App</span><span>volume</span></footer>
+      </article>
+      <article class="card">
+        <div class="viz"><div class="wf-logs"><span>12:04:11 GET /tickets 200</span><span>12:04:12 GET /tickets 200</span><span class="err">12:04:19 POST /tickets 500</span><span>↳ column "status" missing</span><span class="fix">+ patch schema.sql · 14/14 pass</span></div></div>
+        <p>“Watch the logs. Propose a fix.”</p>
+        <footer><span class="kind agent"><i></i>Agent</span><span>staging</span></footer>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- STATE -->
+<section class="band" id="state">
+  <div class="wrap">
+    <div class="mark"><b>State</b><span>Resources belong to the app</span></div>
+    <div class="state">
+      <div>
+        <h2>Code changes. <span class="u">Data stays.</span></h2>
+        <div class="figs">
+          <div class="fig"><b>5</b><span>Releases</span></div>
+          <div class="fig"><b>1</b><span>Database</span></div>
+          <div class="fig"><b>0</b><span>Rows lost</span></div>
+        </div>
+        <p class="example">Example project</p>
+      </div>
+      <div class="stack" aria-hidden="true">
+        <div class="pl edge" style="--z:-18px"></div>
+        <div class="pl edge" style="--z:-12px"></div>
+        <div class="pl edge" style="--z:-6px"></div>
+        <div class="pl slab" style="--z:0px">postgres</div>
+        <div class="pl" style="--z:40px">v1</div>
+        <div class="pl" style="--z:72px">v2</div>
+        <div class="pl" style="--z:104px">v3</div>
+        <div class="pl" style="--z:136px">v4</div>
+        <div class="pl top" style="--z:168px">v5 · live</div>
+        <span class="callout" style="right:0;top:22%">Code releases</span>
+        <span class="callout" style="right:2%;top:73%">Same database</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="band proof" id="proof">
+  <div class="wrap">
+    <div class="mark"><b>Proof</b><span>Release evidence</span></div>
+    <h2>Every release, <span class="u">proven.</span></h2>
+    <div class="hash" aria-hidden="true">sha256:<em>9e4c51b2</em>e07fa3d8c1a71f</div>
+    <div class="chain">
+      <div class="link"><span><i style="background:var(--s1)"></i>Source</span><b>rev 5 · 9e4c…a71f</b></div>
+      <div class="link"><span><i style="background:var(--s3)"></i>Runtime</span><b>wasmer/node@22</b></div>
+      <div class="link"><span><i style="background:var(--s4)"></i>Checks</span><b>14 / 14 passed</b></div>
+      <div class="link"><span><i style="background:var(--s6)"></i>Live</span><b>support-desk.wasmer.app</b></div>
+    </div>
+    <p class="example">Example release</p>
+  </div>
+</section>
+
+<!-- BEGIN -->
+<section class="band void" id="begin">
+  <div class="wrap">
+    <div class="mark"><b>Begin</b><span>Next release</span></div>
+    <div class="eclipse-stage">
+      <div class="eclipse" aria-hidden="true">
+        <div class="dial"></div>
+        <div class="dial major"></div>
+        <div class="corona"></div>
+        <div class="ring"></div>
+        <div class="disc"></div>
+        <div class="bead"></div>
+        <div class="stops">
+          <span style="--a:110deg">Plan</span><span style="--a:170deg">Generate</span><span style="--a:230deg">Run</span><span style="--a:290deg">Repair</span><span style="--a:350deg">Verify</span><span class="now" style="--a:50deg">Live</span>
+        </div>
+      </div>
+      <h2>Build what’s next.</h2>
+    </div>
+    <p class="sub">Your Wasmer account carries over.</p>
+    <div class="ctas">
+      <a class="btn" href="/onboarding">Start building →</a>
+      <a class="btn outline" href="/onboarding">Continue with ChatGPT</a>
+    </div>
+    <span class="pending">Runs locally · open the sign-in link Adorable prints when it starts</span>
+    <footer><span>Adorable · Runs on Wasmer</span><span>Local build · Oct 2026</span></footer>
+  </div>
+</section>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const el = document.getElementById('typed');
+  const lines = ['A support desk my team can triage', 'Every morning, summarize new tickets', 'A book club with weekly votes', 'Caption product photos as they upload'];
+  let li = 0;
+  const type = (s, i = 0) => { el.textContent = s.slice(0, i); if (i < s.length) setTimeout(() => type(s, i + 1), 38); else setTimeout(next, 2600); };
+  const next = () => { li = (li + 1) % lines.length; type(lines[li]); };
+  if (!reduce) setTimeout(next, 3000);
+
+  const stage = document.getElementById('stage');
+  document.getElementById('prompt').addEventListener('submit', e => {
+    e.preventDefault();
+    stage.classList.remove('firing'); void stage.offsetWidth; stage.classList.add('firing');
+    setTimeout(() => stage.classList.remove('firing'), 4000);
+    setTimeout(() => { location.href = '/onboarding'; }, reduce ? 0 : 900);
+  });
+
+  // light follows the pointer
+  const caustic = document.getElementById('caustic');
+  const hero = document.querySelector('.hero');
+  if (!reduce) hero.addEventListener('pointermove', e => {
+    const r = hero.getBoundingClientRect();
+    const y = (e.clientY - r.top) / r.height - .5, x = (e.clientX - r.left) / r.width - .5;
+    caustic.style.transform = `rotate(${y * 9}deg) scale(${1 + x * .08})`;
+  });
+
+  // builder window plays the run
+  const app = document.getElementById('app');
+  const btns = [...app.querySelectorAll('.steps button')];
+  const pill = document.querySelector('#pill span');
+  const names = ['planning', 'generating', 'running', 'repairing', 'verifying', 'live'];
+  const views = ['resources', 'code', 'logs', 'logs', 'checks', 'preview'];
+  let cur = 5, auto = true, timer;
+  const set = i => {
+    cur = i;
+    btns.forEach((b, k) => { b.classList.toggle('on', k === i); b.classList.toggle('done', k < i); b.setAttribute('aria-selected', k === i); });
+    app.querySelectorAll('[data-s]').forEach(e => e.hidden = +e.dataset.s > i);
+    app.querySelectorAll('.view').forEach(v => v.hidden = v.dataset.v !== views[i]);
+    app.querySelectorAll('.tabs span').forEach(t => t.classList.toggle('on', t.dataset.v === views[i]));
+    pill.textContent = names[i];
+  };
+  const tick = () => { if (!auto) return; set(cur >= 5 ? 0 : cur + 1); timer = setTimeout(tick, cur === 5 ? 5200 : 2100); };
+  btns.forEach((b, k) => b.addEventListener('click', () => { auto = false; clearTimeout(timer); set(k); }));
+  set(5);
+  if (!reduce && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { io.disconnect(); timer = setTimeout(tick, 700); } }, { threshold: .35 });
+    io.observe(app);
+  }
+})();
+</script>
+<style>
+.holo { animation: holo 14s ease-in-out infinite alternate; transform-box: view-box; transform-origin: 360px 240px; }
+@keyframes holo { to { transform: rotate(14deg) translate(6px, -4px); } }
+@media (prefers-reduced-motion: reduce) { .holo { animation: none; } }
+h1 { font-size: clamp(54px, 8.6vw, 128px); }
+</style>
+
+</body></html>

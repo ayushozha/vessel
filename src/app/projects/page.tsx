@@ -1,0 +1,17 @@
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+
+import { listProjects } from "@/lib/projects";
+import { getActiveModel, getWasmerAccount } from "@/lib/readiness";
+
+import { ProjectsHome } from "./projects-home";
+
+export const metadata = { title: "Projects · Adorable" };
+
+export default async function ProjectsPage() {
+  await connection(); // reads local files on every request
+  if (!(await getWasmerAccount())) redirect("/onboarding");
+  if ((await listProjects()).length === 0) redirect("/new");
+  const active = await getActiveModel();
+  return <ProjectsHome model={active ? { provider: active.provider, model: active.model } : null} />;
+}

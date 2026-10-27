@@ -1,11 +1,18 @@
 import { guardLocal } from "@/lib/guard";
 import { createProject, listProjects, NewProject } from "@/lib/projects";
+import { initRuntimeSync, status } from "@/lib/runtime";
+import { listFiles } from "@/lib/workspace";
 import { getActiveModel } from "@/lib/readiness";
 
 export async function GET(request: Request) {
   const blocked = guardLocal(request);
   if (blocked) return blocked;
-  return Response.json({ projects: await listProjects() });
+  initRuntimeSync();
+  // Each project with what the projects home shows: how many files it has and whether its app is running.
+  const projects = await Promise.all(
+    (await listProjects()).map(async (p) => ({ ...p, files: (await listFiles(p.id).catch(() => [])).length, runtime: status(p.id) })),
+  );
+  return Response.json({ projects });
 }
 
 export async function POST(request: Request) {

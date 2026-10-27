@@ -1,26 +1,29 @@
 @import "tailwindcss";
 
-/* Vessel brand: white instrument page, one refracted spectrum as the only colour. */
+/* Adorable brand: bright, rounded pages in deep berry ink, with a peach-to-rose glow as the accent. */
 :root {
   color-scheme: light;
   --paper: #ffffff;
-  --ink: #0a0a0b;
-  --ink-2: #44444b;
-  --mute: #8e8e96;
-  --hair: #e7e7eb;
-  --wash: #f7f7f9;
-  --s1: #ff3d6e;
-  --s2: #ff8a1f;
-  --s3: #f2b705;
-  --s4: #10b981;
-  --s5: #0ea5e9;
-  --s6: #6d4aff;
-  --spectrum: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6));
+  --ink: #341029;
+  --ink-2: #5e4554;
+  --mute: #9a8591;
+  --hair: #f1e3e9;
+  --wash: #fff6f8;
+  --panel: #1e0a19;
+  --panel-ink: #f6e9ef;
+  --s1: #f43f6b;
+  --s2: #ff8a4c;
+  --s3: #f5a524;
+  --s4: #1fbf8f;
+  --s5: #ff5fa2;
+  --s6: #6c7bff;
+  --spectrum: linear-gradient(90deg, #ffb199, #ff6fa0, #ff4f7b);
+  --glow: radial-gradient(1100px 480px at 50% -160px, rgba(255, 111, 160, 0.22), rgba(255, 177, 153, 0.12) 45%, transparent 75%);
 }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--glow) no-repeat, var(--paper);
   color: var(--ink);
   font-family: var(--font-display), "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

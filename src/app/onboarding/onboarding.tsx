@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import styles from "./onboarding.module.css";
@@ -38,7 +39,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
+export function Onboarding({ wasmerUser, chatgptResult }: { wasmerUser: string; chatgptResult?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [selected, setSelected] = useState<ProviderId>("chatgpt");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -68,8 +69,8 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
   return (
     <main className={styles.page}>
       <header className={styles.mark}>
-        <b>Vessel</b>
-        <span>Step 1 · Connect a model</span>
+        <b>Adorable</b>
+        <span>Step 2 · Connect a model</span>
       </header>
 
       <div className={styles.grid}>
@@ -77,7 +78,8 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
           <h1 className={styles.title}>
             Bring your own <span className={styles.u}>intelligence.</span>
           </h1>
-          <p className={styles.sub}>Pick where Vessel’s coding agent gets its model. Keys stay on this machine.</p>
+          <p className={styles.sub}>Pick where Adorable’s coding agent gets its model. Keys stay on this machine.</p>
+          <WasmerAccount username={wasmerUser} />
           {resultMessage && (
             <p className={chatgptResult === "connected" ? styles.ok : styles.err} role="status">
               {resultMessage}
@@ -124,7 +126,7 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
             <span>
               Ready · {OPTIONS.find((o) => o.id === status.active)?.name} · <b>{activeModel}</b>
             </span>
-            <Link href="/new" className={styles.continue}>
+            <Link href="/projects" className={styles.continue}>
               Continue →
             </Link>
           </>
@@ -133,6 +135,22 @@ export function Onboarding({ chatgptResult }: { chatgptResult?: string }) {
         )}
       </footer>
     </main>
+  );
+}
+
+function WasmerAccount({ username }: { username: string }) {
+  const router = useRouter();
+  const signOut = async () => {
+    await api("/api/wasmer", { method: "DELETE" });
+    router.refresh();
+  };
+  return (
+    <div className={styles.row}>
+      <span className={styles.mono}>Wasmer · {username}</span>
+      <button type="button" className={styles.link} onClick={signOut}>
+        Sign out
+      </button>
+    </div>
   );
 }
 
@@ -284,7 +302,7 @@ function KeyPanel({ status, onChange }: { status: KeyStatus; onChange: () => voi
       <button type="submit" className={styles.btn} disabled={busy || apiKey.trim().length < 8}>
         {busy ? "Checking key…" : "Connect"}
       </button>
-      <p className={styles.muted}>We check the key against the provider’s model list, then store it in your local Vessel credentials file.</p>
+      <p className={styles.muted}>We check the key against the provider’s model list, then store it in your local Adorable credentials file.</p>
     </form>
   );
 }
@@ -311,7 +329,7 @@ function ChatgptPanel({ status, onChange }: { status: Status; onChange: () => vo
         </>
       ) : chatgpt.localMode.enabled ? (
         <>
-          <p className={styles.muted}>Sign in and allow Vessel to use your ChatGPT plan for coding. Your conversations are not shared.</p>
+          <p className={styles.muted}>Sign in and allow Adorable to use your ChatGPT plan for coding. Your conversations are not shared.</p>
           <a className={`${styles.btn} ${styles.chatgpt}`} href="/api/chatgpt/start">
             Continue with ChatGPT
           </a>
@@ -320,7 +338,7 @@ function ChatgptPanel({ status, onChange }: { status: Status; onChange: () => vo
         <p className={styles.note}>{chatgpt.localMode.reason}</p>
       )}
       <p className={styles.muted}>
-        Uses OpenAI’s documented flow for locally run apps. A hosted version of Vessel needs OpenAI’s approval first.
+        Uses OpenAI’s documented flow for locally run apps. A hosted version of Adorable needs OpenAI’s approval first.
       </p>
     </div>
   );
