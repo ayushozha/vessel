@@ -208,3 +208,19 @@
 .switchMenu hr { border: 0; border-top: 1px solid var(--hair); margin: 6px 4px; }
 .switchDim { padding: 6px 10px; font-size: 13px; color: var(--mute); }
 .switchNew { font-weight: 500; }
+
+/* deploy tab */
+.deploy { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.deployLog { flex: 1 0 200px; height: auto; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.deployLog span { display: block; }
+.stages a { color: inherit; text-decoration: none; }
+.stages a:hover { text-decoration: underline; }
+.list li[data-step="done"] i { border: 0; background: var(--s4); }
+.list li[data-step="on"] i { border: 0; background: var(--s5); box-shadow: 0 0 0 3px color-mix(in srgb, var(--s5) 25%, transparent); animation: pulse 1.2s ease-in-out infinite; }
+.list li[data-step="error"] i { border: 0; background: var(--s1); }
+.list li[data-step="error"] em { color: var(--s1); }
+.liveCard { display: grid; gap: 6px; padding: 16px; border: 1px solid var(--hair); border-radius: 12px; background: var(--paper); }
+.liveCard > a { font-size: 20px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.liveCard > a:hover { text-decoration: underline; }
+.liveCard .muted { font-size: 13px; }
+.liveCard .muted a { color: var(--ink-2); }

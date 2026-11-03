@@ -33,7 +33,8 @@ Model-agnostic onboarding · ChatGPT plan usage (local mode) · OpenAI · Anthro
 | Local run: each project in a Wasmer SDK sandbox (Edge.js) with persistent host-side PGlite Postgres | Implemented, tested |
 | Project memory with Provena: decisions and preferences recalled on every run | Implemented, tested (needs `pnpm setup:provena`) |
 | Token and cost tracking: tokens per run and project; USD for API keys via [genai-prices](https://github.com/pydantic/genai-prices) | Implemented, tested; ChatGPT plan runs show tokens only |
-| Publish to Wasmer Edge, checks and auto-repair | Roadmap, see the product spec |
+| One-click Publish to Wasmer Edge with Anybuild (zip upload, stack detection, build, live URL; managed Postgres for apps that use `pg`; republish = new version of the same app) | Implemented, tested against a mock and the live API's schema; needs a real publish to confirm end to end |
+| Checks, Edge logs and auto-repair | Roadmap, see the product spec |
 | Landing page | Design preview only |
 
 The product and engineering spec lives outside this repo in `specs/wasmer-build-with-ai/` (SPEC.md and FEATURES.md).
@@ -56,7 +57,7 @@ Open the **sign-in link printed in the terminal** (`http://127.0.0.1:3000/auth?t
 | Variable | Default | Effect |
 |---|---|---|
 | `CHATGPT_LOCAL_MODE` | off | `true` enables Continue with ChatGPT. Only works when the app is opened at `127.0.0.1`, because OpenAI only redirects back to a `127.0.0.1` loopback address. |
-| `WASMER_REGISTRY` | `https://registry.wasmer.io/graphql` | Wasmer GraphQL API used for sign-in (for example `https://registry.wasmer.wtf/graphql` for the dev environment). |
+| `WASMER_REGISTRY` | `https://registry.wasmer.io/graphql` | Wasmer GraphQL API used for sign-in and publishing (for example `https://registry.wasmer.wtf/graphql` for the dev environment). |
 | `VESSEL_CREDENTIALS_PATH` | `~/.config/vessel/credentials.json` | Where API keys and ChatGPT tokens are stored. |
 | `VESSEL_PROVENA_CLI` | `~/.config/vessel/toolchains/provena/cli/dist/cli.js` | Provena CLI used for project memory. Memory is off when it is missing. |
 
@@ -86,6 +87,7 @@ All routes are local-only.
 | `DELETE /api/providers?provider=` | Remove a provider |
 | `GET /api/providers/models?provider=` | Re-fetch models with the stored credential (refreshes ChatGPT tokens when needed) |
 | `GET /api/chatgpt/start` · `GET /api/chatgpt/callback` | ChatGPT sign-in and consent |
+| `POST /api/projects/:id/deploy` · `GET` | Publish the project to Wasmer Edge (runs in the background) · progress, build log and the published app |
 | `GET /api/projects/:id/memory` · `POST` `{ kind, scope, title, body }` | List what the project remembers; add a rule by hand (human authority) |
 
 ## Repository map
@@ -93,6 +95,7 @@ All routes are local-only.
 | Path | Role |
 |---|---|
 | `src/lib/wasmer.ts`, `src/lib/wasmer-login.ts` | Wasmer GraphQL client; Sign in with Wasmer (nonce flow and loopback callback) |
+| `src/lib/deploy.ts` | One-click Publish: zip the workspace, Anybuild deploy under the linked account, follow the build, remember the app |
 | `src/lib/providers.ts` | Provider registry and model-list adapters |
 | `src/lib/credentials.ts` | Local credential store |
 | `src/lib/chatgpt.ts` | ChatGPT local OAuth flow, ID-token verification, token refresh |
