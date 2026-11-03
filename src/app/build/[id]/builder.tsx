@@ -16,11 +16,13 @@ import { MemoryView } from "./memory-view";
 import { ProjectSwitcher } from "./project-switcher";
 import { Preview } from "./preview/preview";
 import { compact, totalSpend } from "./spend";
+import { DeployView } from "./deploy-view";
+import { useDeploy } from "./use-deploy";
 import { useRun, type LiveRun } from "./use-run";
 import { useRuntime } from "./use-runtime";
 
 const STAGES = ["Plan", "Generate", "Run", "Repair", "Verify", "Live"] as const;
-const TABS = ["Preview", "Code", "Logs", "Memory", "Checks", "Resources"] as const;
+const TABS = ["Preview", "Code", "Logs", "Memory", "Checks", "Resources", "Deploy"] as const;
 type Tab = (typeof TABS)[number];
 const PROVIDER_NAMES: Record<string, string> = { chatgpt: "ChatGPT", openai: "OpenAI", anthropic: "Anthropic", glm: "GLM" };
 const kb = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`);
@@ -33,6 +35,9 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
   const run = useRun(project.id, project.brief);
   const runtime = useRuntime(project.id);
   const rt = runtime.status;
+  const deploy = useDeploy(project.id);
+  const deployment = deploy.status?.deployment;
+  const liveUrl = deployment?.url;
   const threadRef = useRef<HTMLDivElement>(null);
 
   // Which stages are lit: live run state first, otherwise the last finished run.
@@ -45,6 +50,11 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
       return "idle";
     }
     if (s === "Plan" || s === "Generate") return generated ? "done" : "idle";
+    if (s === "Live") {
+      if (deploy.active) return "on";
+      if (deploy.status?.job?.step === "failed") return "error";
+      return liveUrl ? "done" : "idle";
+    }
     if (s === "Run") {
       if (rt?.state === "running") return "done";
       if (rt?.state === "starting" || rt?.state === "restarting") return "on";
@@ -102,7 +112,13 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
           {STAGES.map((s) => (
             <li key={s} data-state={stageState(s)} title={s === "Run" && generated ? "Runs in the Wasmer sandbox once the runtime is connected" : undefined}>
               <i />
-              {s}
+              {s === "Live" && liveUrl && !deploy.active ? (
+                <a href={liveUrl} target="_blank" rel="noopener noreferrer" title={`Open ${liveUrl}`}>
+                  {s} ↗
+                </a>
+              ) : (
+                s
+              )}
             </li>
           ))}
         </ol>
@@ -115,8 +131,17 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
             <i />
             {PROVIDER_NAMES[active.provider] ?? active.provider} · {active.model}
           </Link>
-          <button type="button" className={styles.publish} disabled title="Publishing to Wasmer Edge comes next">
-            Publish
+          <button
+            type="button"
+            className={styles.publish}
+            disabled={deploy.active}
+            title={liveUrl ? "Publish a new version to Wasmer Edge" : "Publish to Wasmer Edge with Anybuild"}
+            onClick={() => {
+              setTab("Deploy");
+              void deploy.publish();
+            }}
+          >
+            {deploy.active ? "Publishing…" : liveUrl ? "Republish" : "Publish"}
           </button>
         </div>
       </header>
@@ -196,6 +221,7 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                 ))}
               </pre>
             )}
+            {tab === "Deploy" && <DeployView deploy={deploy} />}
             {tab === "Memory" && <MemoryView projectId={project.id} version={run.messages?.length ?? 0} />}
             {tab === "Checks" && (
               <ul className={styles.list}>
@@ -228,10 +254,10 @@ export function Builder({ project, active }: { project: Project; active: ActiveM
                   <em>{spendLabel}</em>
                 </li>
                 {kind.resources.map((r) => (
-                  <li key={r}>
+                  <li key={r} data-on={!!liveUrl}>
                     <i />
                     <span>{r}</span>
-                    <em>On Wasmer Edge when you publish</em>
+                    <em>{liveUrl ? `Live · ${deployment?.appName}` : "On Wasmer Edge when you publish"}</em>
                   </li>
                 ))}
               </ul>

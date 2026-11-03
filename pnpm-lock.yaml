@@ -32,6 +32,9 @@ importers:
       ai:
         specifier: 7.0.127
         version: 7.0.127(zod@4.6.5)
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       jose:
         specifier: 6.2.12
         version: 6.2.12
@@ -69,9 +72,6 @@ importers:
       eslint-config-next:
         specifier: 16.3.8
         version: 16.3.8(@typescript-eslint/parser@8.71.2(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      fflate:
-        specifier: 0.8.3
-        version: 0.8.3
       tailwindcss:
         specifier: ^4
         version: 4.3.3
